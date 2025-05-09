@@ -17,7 +17,7 @@ public class ParseGCode : MonoBehaviour
     };
     // path to .gcode file
     /** FUTURE DEVELOPMENT: allow user to select file **/
-    string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
+    string path = "Assets/Scripts/Resources/sample.txt";
     // initialize queue of commands
     Queue<string> q = new Queue<string>();
 
@@ -37,29 +37,6 @@ public class ParseGCode : MonoBehaviour
         if (File.Exists(path))
         {
             Debug.Log("File exists");
-            foreach (string line in File.ReadLines(path))
-            {
-                string trimmed = line.Trim();
-
-                // Skip comments or empty lines
-                if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith(";") || trimmed.StartsWith("("))
-                {
-                    continue;
-                }
-
-                string[] parts = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                string command = parts[0].ToUpper(); // E.g., G1, G2, M3
-
-                if (gcodeHandlers.TryGetValue(command, out var handler))
-                {
-                    handler(parts);
-                }
-                else
-                {
-                    Debug.Log($"Unknown command: {command}");
-                }
-            }
-
             using (StreamReader reader = new StreamReader(path))
             {
                 string line;
@@ -69,6 +46,7 @@ public class ParseGCode : MonoBehaviour
                 while ((trimmed = line.Trim()) != null)
                 {
                     // Skip empty or whitespace-only lines
+                    Debug.Log("Trimming line");
                     if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith(";") || trimmed.StartsWith("("))
                     {
                         continue;
@@ -76,6 +54,7 @@ public class ParseGCode : MonoBehaviour
                     string[] parts = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
                     string command = parts[0].ToUpper();
 
+                    Debug.Log("Handling command");
                     if (gcodeHandlers.TryGetValue(command, out var handler))
                     {
                         handler(parts);
