@@ -13,13 +13,19 @@ public class ParseGCode : MonoBehaviour
         { "G1", HandleG1 },
         { "G2", HandleG2 },
         { "M3", HandleM3 }
-
+        /** FUTURE DEVELOPMENT: MORE COMMANDS **/
     };
+
     // path to .gcode file
     /** FUTURE DEVELOPMENT: allow user to select file **/
     string path = "Assets/Scripts/Resources/sample.txt";
-    // initialize queue of commands
+    //string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
+    // initialize queue of processed commands
     Queue<string> q = new Queue<string>();
+
+    protected StreamReader reader = null;
+    protected string text = " "; // assigned to allow first line to be read below
+
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -37,34 +43,8 @@ public class ParseGCode : MonoBehaviour
         if (File.Exists(path))
         {
             Debug.Log("File exists");
-            using (StreamReader reader = new StreamReader(path))
-            {
-                string line;
-                line = reader.ReadLine();
-                string trimmed;
-
-                while ((trimmed = line.Trim()) != null)
-                {
-                    // Skip empty or whitespace-only lines
-                    Debug.Log("Trimming line");
-                    if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith(";") || trimmed.StartsWith("("))
-                    {
-                        continue;
-                    }
-                    string[] parts = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                    string command = parts[0].ToUpper();
-
-                    Debug.Log("Handling command");
-                    if (gcodeHandlers.TryGetValue(command, out var handler))
-                    {
-                        handler(parts);
-                    }
-                    else
-                    {
-                        Debug.Log($"Unknown command: {command}");
-                    }
-                }
-            }
+            reader = new StreamReader(path);
+            Debug.Log("Reading file");
         }
         else
         {
@@ -76,21 +56,97 @@ public class ParseGCode : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-
+        string trimmed = text.Trim();
+        if (trimmed != null)
+        {
+            text = reader.ReadLine();
+            //Debug.Log("Trimming line");
+            if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith(";") || trimmed.StartsWith("("))
+            {
+                Debug.Log("Skipping empty line or comment");
+            }
+            else
+            {
+                int index = trimmed.IndexOf(";");
+                if (index >= 0)
+                {
+                    trimmed = trimmed.Substring(0, index);
+                }
+                string[] parts = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                string command = parts[0].ToUpper();
+                //Debug.Log(command);
+                //Debug.Log("Handling command");
+                if (gcodeHandlers.TryGetValue(command, out var handler))
+                {
+                    handler(parts);
+                }
+                else
+                {
+                    Debug.Log($"Unknown command: {command}");
+                }
+            }
+        }
+        else
+        {
+            Debug.Log("End of file reached or no more lines to read.");
+            reader.Close();
+            return;
+        }
     }
 
     static void HandleG1(string[] parts)
     {
         Debug.Log("Handling G1 command");
+        foreach (var part in parts)
+        {
+            Debug.Log(part);
+        }
     }
 
     static void HandleG2(string[] parts)
     {
         Debug.Log("Handling G2 command");
+        foreach (var part in parts)
+        {
+            Debug.Log(part);
+        }
     }
 
     static void HandleM3(string[] parts)
     {
         Debug.Log("Handling M3 command");
+        foreach (var part in parts)
+        {
+            Debug.Log(part);
+        }
     }
 }
+
+
+
+//using (reader)
+//{
+
+
+//    while ((trimmed = line.Trim()) != null)
+//    {
+        // Skip empty or whitespace-only lines
+        //Debug.Log("Trimming line");
+        //if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith(";") || trimmed.StartsWith("("))
+        //{
+        //    continue;
+        //}
+//    string[] parts = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+//    string command = parts[0].ToUpper();
+
+//    Debug.Log("Handling command");
+//    if (gcodeHandlers.TryGetValue(command, out var handler))
+//    {
+//        handler(parts);
+//    }
+//    else
+//    {
+//        Debug.Log($"Unknown command: {command}");
+//    }
+//    }
+//}
