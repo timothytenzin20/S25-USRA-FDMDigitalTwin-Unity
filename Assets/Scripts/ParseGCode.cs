@@ -7,7 +7,6 @@ using System.Collections.Generic;
 public class ParseGCode : MonoBehaviour
 {
     public Rigidbody[] rb;
-
     static Dictionary<string, Action<string[]>> gcodeHandlers = new Dictionary<string, Action<string[]>>
     {
         { "G1", HandleG1 },
