@@ -17,7 +17,7 @@ public class ParseGCode : MonoBehaviour
 
     // path to .gcode file
     /** FUTURE DEVELOPMENT: allow user to select file **/
-    string path = "Assets/Scripts/Resources/sample.txt";
+    string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
     //string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
     // initialize queue of processed commands
     Queue<string> q = new Queue<string>();
@@ -113,6 +113,7 @@ public class ParseGCode : MonoBehaviour
         {
             Debug.Log(part);
         }
+        Vector3 move = (new Vector3(parseCommand(parts[1]), 0, parseCommand(parts[2])));
     }
 
     static void HandleG2(string[] parts)
@@ -131,6 +132,13 @@ public class ParseGCode : MonoBehaviour
         {
             Debug.Log(part);
         }
+    }
+
+    static float parseCommand(string command)
+    {
+        Debug.Log($"Parsing command: {command}");
+        float number = float.Parse(command.Substring(1));
+        return number;
     }
 }
 
