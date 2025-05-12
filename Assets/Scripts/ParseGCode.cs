@@ -29,6 +29,12 @@ public class ParseGCode : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        if (rb == null || rb.Length < 4)
+        {
+            Debug.LogError("Rigidbody array not assigned or wrong size");
+            return;
+        }
+
         // 0 = head (x-axis), 1 = bed (z-axis), 2 = beam (y-axis), 3 = frame
         rb[0].useGravity = false;
         rb[0].isKinematic = true;
@@ -55,10 +61,23 @@ public class ParseGCode : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (reader == null) {
+            return;
+        }
+
+        text = reader.ReadLine();
+
+        if (text == null)
+        {
+            Debug.Log("End of file reached or no more lines to read.");
+            reader.Close();
+            reader = null;
+            return;
+        }
+
         string trimmed = text.Trim();
         if (trimmed != null)
         {
-            text = reader.ReadLine();
             //Debug.Log("Trimming line");
             if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith(";") || trimmed.StartsWith("("))
             {
@@ -84,12 +103,6 @@ public class ParseGCode : MonoBehaviour
                     Debug.Log($"Unknown command: {command}");
                 }
             }
-        }
-        else
-        {
-            Debug.Log("End of file reached or no more lines to read.");
-            reader.Close();
-            return;
         }
     }
 
