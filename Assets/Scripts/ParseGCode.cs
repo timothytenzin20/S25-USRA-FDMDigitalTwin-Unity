@@ -18,12 +18,18 @@ public class ParseGCode : MonoBehaviour
     // path to .gcode file
     /** FUTURE DEVELOPMENT: allow user to select file **/
     string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
-    //string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
+    //string path = "Assets/Scripts/Resources/sample.txt";
     // initialize queue of processed commands
     Queue<string> q = new Queue<string>();
 
     protected StreamReader reader = null;
     protected string text = " "; // assigned to allow first line to be read below
+
+    public static ParseGCode instance; // needed for static access
+    void Awake()
+    {
+        instance = this;
+    }
 
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
@@ -114,6 +120,8 @@ public class ParseGCode : MonoBehaviour
             Debug.Log(part);
         }
         Vector3 move = (new Vector3(parseCommand(parts[1]), 0, parseCommand(parts[2])));
+        Debug.Log($"MOVE VECTOR: {move}");
+        instance.rb[0].MovePosition(instance.rb[0].position + move * Time.fixedDeltaTime);
     }
 
     static void HandleG2(string[] parts)
