@@ -3,6 +3,8 @@ using System;
 using System.IO;
 using System.Collections;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Collections.Specialized;
 
 public class ParseGCode : MonoBehaviour
 {
@@ -15,10 +17,19 @@ public class ParseGCode : MonoBehaviour
         /** FUTURE DEVELOPMENT: MORE COMMANDS **/
     };
 
+    static Dictionary<string, Func<float, Vector3>> commandAxis = new Dictionary<string, Func<float, Vector3>>
+    {
+        { "X", HandleX },
+        { "Z", HandleY }, // gcode uses Z for Y axis
+        { "Y", HandleZ }  // gcode uses Y for Z axis
+    };
+
     // path to .gcode file
     /** FUTURE DEVELOPMENT: allow user to select file **/
-    string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
-    //string path = "Assets/Scripts/Resources/sample.txt";
+    // string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
+    // string path = "Assets/Scripts/Resources/sample.txt";
+    string path = "Assets/Scripts/Resources/isolated.gcode";
+
     // initialize queue of processed commands
     Queue<string> q = new Queue<string>();
 
@@ -115,13 +126,33 @@ public class ParseGCode : MonoBehaviour
     static void HandleG1(string[] parts)
     {
         Debug.Log("Handling G1 command");
-        foreach (var part in parts)
+        //foreach (var part in parts)
+        //{
+        //    Debug.Log(part);
+        //}
+
+        for (var i = 1; i < parts.Length; i++)
         {
-            Debug.Log(part);
+            string commandAxis = getCommandLetter(parts[i]);
+            if (commandAxis == "X")
+            {
+                Debug.Log("X axis: Unity");
+                Vector3 move = HandleX(parseCommand(parts[i]));
+                instance.rb[0].MovePosition(instance.rb[0].position + (move * Time.fixedDeltaTime) / 1000);
+            }
+            else if (commandAxis == "Y")
+            {
+                Debug.Log("Z axis: Unity");
+                Vector3 move = HandleZ(parseCommand(parts[i]));
+                instance.rb[2].MovePosition(instance.rb[2].position + (move * Time.fixedDeltaTime) / 1000);
+            }
+            else if (commandAxis == "Z")
+            {
+                Debug.Log("Y axis: Unity");
+                Vector3 move = HandleY(parseCommand(parts[i]));
+                instance.rb[1].MovePosition(instance.rb[1].position + (move * Time.fixedDeltaTime) / 1000);
+            }
         }
-        Vector3 move = (new Vector3(parseCommand(parts[1]), 0, parseCommand(parts[2])));
-        Debug.Log($"MOVE VECTOR: {move}");
-        instance.rb[0].MovePosition(instance.rb[0].position + move * Time.fixedDeltaTime);
     }
 
     static void HandleG2(string[] parts)
@@ -144,37 +175,39 @@ public class ParseGCode : MonoBehaviour
 
     static float parseCommand(string command)
     {
-        Debug.Log($"Parsing command: {command}");
+        //Debug.Log($"Parsing command: {command}");
         float number = float.Parse(command.Substring(1));
         return number;
+    }
+
+    static string getCommandLetter(string command)
+    {
+        //Debug.Log($"Parsing command: {command}");
+        string character = command.Substring(0,1);
+        //Debug.Log(character);
+        return character;
+    }
+
+    static Vector3 HandleX(float value)
+    {
+        Vector3 move = (new Vector3(value, 0, 0));
+        Debug.Log(move);
+        return move;
+    }
+
+    static Vector3 HandleY(float value)
+    {
+        Vector3 move = (new Vector3(0, value, 0));
+        Debug.Log(move);
+        return move;
+    }
+
+    static Vector3 HandleZ(float value)
+    {
+        Vector3 move = (new Vector3(0, 0, value));
+        Debug.Log(move);
+        return move;
     }
 }
 
 
-
-//using (reader)
-//{
-
-
-//    while ((trimmed = line.Trim()) != null)
-//    {
-        // Skip empty or whitespace-only lines
-        //Debug.Log("Trimming line");
-        //if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith(";") || trimmed.StartsWith("("))
-        //{
-        //    continue;
-        //}
-//    string[] parts = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-//    string command = parts[0].ToUpper();
-
-//    Debug.Log("Handling command");
-//    if (gcodeHandlers.TryGetValue(command, out var handler))
-//    {
-//        handler(parts);
-//    }
-//    else
-//    {
-//        Debug.Log($"Unknown command: {command}");
-//    }
-//    }
-//}
