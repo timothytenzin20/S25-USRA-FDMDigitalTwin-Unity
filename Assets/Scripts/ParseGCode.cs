@@ -127,7 +127,7 @@ public class ParseGCode : MonoBehaviour
 
     void FixedUpdate()
     {
-
+        // dequeue and process commands
     }
 
     static void HandleG1(string[] parts)
