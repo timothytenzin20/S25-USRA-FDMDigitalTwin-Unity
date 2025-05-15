@@ -20,8 +20,8 @@ public class ParseGCode : MonoBehaviour
     static Dictionary<string, Func<float, Vector3>> commandAxis = new Dictionary<string, Func<float, Vector3>>
     {
         { "X", HandleX },
-        { "Z", HandleY }, // gcode uses Z for Y axis
-        { "Y", HandleZ }  // gcode uses Y for Z axis
+        { "Z", HandleY }, // gcode uses Z for Unity Y axis
+        { "Y", HandleZ }  // gcode uses Y for Unity Z axis
     };
 
     // path to .gcode file
@@ -31,10 +31,12 @@ public class ParseGCode : MonoBehaviour
     string path = "Assets/Scripts/Resources/isolated.gcode";
 
     // initialize queue of processed commands
-    Queue<string> q = new Queue<string>();
+    Queue<Vector3> q = new Queue<Vector3>();
 
     protected StreamReader reader = null;
     protected string text = " "; // assigned to allow first line to be read below
+
+    public float moveSpeed = 300f;
 
     public static ParseGCode instance; // needed for static access
     void Awake()
@@ -123,6 +125,11 @@ public class ParseGCode : MonoBehaviour
         }
     }
 
+    void FixedUpdate()
+    {
+
+    }
+
     static void HandleG1(string[] parts)
     {
         Debug.Log("Handling G1 command");
@@ -130,7 +137,6 @@ public class ParseGCode : MonoBehaviour
         //{
         //    Debug.Log(part);
         //}
-
         for (var i = 1; i < parts.Length; i++)
         {
             string commandAxis = getCommandLetter(parts[i]);
@@ -138,21 +144,40 @@ public class ParseGCode : MonoBehaviour
             {
                 Debug.Log("X axis: Unity");
                 Vector3 move = HandleX(parseCommand(parts[i]));
-                instance.rb[0].MovePosition(instance.rb[0].position + (move * Time.fixedDeltaTime) / 1000);
+                instance.rb[0].MovePosition(instance.rb[0].position + move * Time.fixedDeltaTime);
             }
             else if (commandAxis == "Y")
             {
                 Debug.Log("Z axis: Unity");
                 Vector3 move = HandleZ(parseCommand(parts[i]));
-                instance.rb[2].MovePosition(instance.rb[2].position + (move * Time.fixedDeltaTime) / 1000);
+                instance.rb[1].MovePosition(instance.rb[1].position + move * Time.fixedDeltaTime);
             }
             else if (commandAxis == "Z")
             {
                 Debug.Log("Y axis: Unity");
-                Vector3 move = HandleY(parseCommand(parts[i]));
-                instance.rb[1].MovePosition(instance.rb[1].position + (move * Time.fixedDeltaTime) / 1000);
+                Vector3 targetPosition = HandleY(parseCommand(parts[i]));
+                var step = instance.moveSpeed * Time.fixedDeltaTime; // calculate distance to move
+                Debug.Log($"Move: {targetPosition}, Speed: {step}");
+                Vector3 newPosition = Vector3.MoveTowards(instance.rb[2].position, targetPosition, step);
+                Debug.Log($"Go to: {newPosition}");
+                instance.rb[2].MovePosition(newPosition);
+            }
+
+            else if (commandAxis == "F")
+            {
+                float feedRate = parseCommand(parts[i]);
+                SetFeedRate(feedRate);
+            }
+            else if (commandAxis == "E")
+            {
+                // Handle extruder movement
+            }
+            else
+            {
+                Debug.Log($"Non-axis command: {commandAxis}");
             }
         }
+        return;
     }
 
     static void HandleG2(string[] parts)
@@ -190,24 +215,32 @@ public class ParseGCode : MonoBehaviour
 
     static Vector3 HandleX(float value)
     {
-        Vector3 move = (new Vector3(value, 0, 0));
-        Debug.Log(move);
-        return move;
+        Vector3 targetPosition = (new Vector3(value,instance.rb[0].position.y, instance.rb[0].position.z));
+        Debug.Log(targetPosition);
+        return targetPosition;
     }
 
     static Vector3 HandleY(float value)
     {
-        Vector3 move = (new Vector3(0, value, 0));
-        Debug.Log(move);
-        return move;
+        Vector3 targetPosition = (new Vector3(instance.rb[2].position.x, value, instance.rb[2].position.z));
+        Debug.Log(targetPosition);
+        return targetPosition;
     }
 
     static Vector3 HandleZ(float value)
     {
-        Vector3 move = (new Vector3(0, 0, value));
-        Debug.Log(move);
-        return move;
+        Vector3 targetPosition = (new Vector3(instance.rb[1].position.x, instance.rb[1].position.y, value));
+        Debug.Log(targetPosition);
+        return targetPosition;
     }
+
+    static void SetFeedRate(float value)
+    {
+        instance.moveSpeed = value/(60 * 1000);
+        Debug.Log($"Adjusted Speed: {instance.moveSpeed}");
+        return;
+    }
+
 }
 
 
