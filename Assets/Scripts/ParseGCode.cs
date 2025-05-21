@@ -26,12 +26,13 @@ public class ParseGCode : MonoBehaviour
 
     // path to .gcode file
     /** FUTURE DEVELOPMENT: allow user to select file **/
-    // string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
-    // string path = "Assets/Scripts/Resources/sample.txt";
-    string path = "Assets/Scripts/Resources/isolated.gcode";
+    //string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
+    string path = "Assets/Scripts/Resources/sample.txt";
+    //string path = "Assets/Scripts/Resources/isolated.gcode";
 
     private Vector3 targetPosition = new Vector3(0,0,0);
     private float arriveThreshold = 0.01f;
+    private MovementCommand? currentCommand = null;
 
     protected StreamReader reader = null;
     protected string text = " "; // allow first line to be read below
@@ -44,11 +45,14 @@ public class ParseGCode : MonoBehaviour
     {
         public int rbIndex;
         public Vector3 vector;
+        //public float speed;
 
+        //public MovementCommand(int rbIndex, Vector3 vector, int speed)
         public MovementCommand(int rbIndex, Vector3 vector)
         {
             this.rbIndex = rbIndex;
             this.vector = vector;
+            //this.speed = speed;
         }
     }
 
@@ -141,25 +145,32 @@ public class ParseGCode : MonoBehaviour
         }
     }
 
+
     void FixedUpdate()
     {
-        // dequeue and process commands
-        if (commandQueue.Count > 0)
+        if (currentCommand == null && commandQueue.Count > 0)
         {
-            MovementCommand cmd = commandQueue.Dequeue();
-            //rb[cmd.rbIndex].transform.position += cmd.vector; // need to make smooth animation for movements
+            currentCommand = commandQueue.Dequeue();
         }
 
-        else
+        if (currentCommand != null)
         {
-            //Vector3 target = instance.targetPosition.Value;
-            //Vector3 newPos = Vector3.MoveTowards(rb[1].position, target, moveSpeed * Time.fixedDeltaTime); // adjust number
-            //rb.MovePosition(newPos);
+            int rbIndex = currentCommand.Value.rbIndex;
+            Vector3 target = currentCommand.Value.vector;
+            Rigidbody body = rb[rbIndex];
 
-            //if (Vector3.Distance(rb.position, target) < arriveThreshold)
-            //{
-            //    //currentTarget = null; // movement complete
-            //}
+            // move towards the target position
+            Vector3 newPos = Vector3.MoveTowards(body.position, target, moveSpeed * Time.fixedDeltaTime);
+            body.MovePosition(newPos);
+
+            // Check if arrived at the target
+            if (Vector3.Distance(newPos, target) < arriveThreshold)
+            {
+                body.MovePosition(target); // Snap to target to avoid overshoot
+                currentCommand = null; // Ready for next command
+            }
+
+            Debug.Log($"x: {body.position.x}, y: {body.position.y}, z: {body.position.z}");
         }
     }
 
@@ -176,22 +187,23 @@ public class ParseGCode : MonoBehaviour
             if (commandAxis == "X")
             {
                 Debug.Log("X axis: Unity");
-                Vector3 move = HandleX(parseCommand(parts[i]));
-                instance.rb[0].MovePosition(instance.rb[0].position + move * Time.fixedDeltaTime);
+                instance.targetPosition = HandleX(parseCommand(parts[i]));
+                Debug.Log($"Move: {instance.targetPosition}, Speed: {instance.moveSpeed * Time.fixedDeltaTime}");
+                instance.commandQueue.Enqueue(new MovementCommand(0, instance.targetPosition));
             }
             else if (commandAxis == "Y")
             {
                 Debug.Log("Z axis: Unity");
-                Vector3 move = HandleZ(parseCommand(parts[i]));
-                instance.rb[1].MovePosition(instance.rb[1].position + move * Time.fixedDeltaTime);
+                instance.targetPosition = HandleZ(parseCommand(parts[i]));
+                Debug.Log($"Move: {instance.targetPosition}, Speed: {instance.moveSpeed * Time.fixedDeltaTime}");
+                instance.commandQueue.Enqueue(new MovementCommand(1, instance.targetPosition));
             }
             else if (commandAxis == "Z")
             {
                 Debug.Log("Y axis: Unity");
                 instance.targetPosition = HandleY(parseCommand(parts[i]));
-                var step = instance.moveSpeed * Time.fixedDeltaTime; // calculate distance to move
-                Debug.Log($"Move: {instance.targetPosition}, Speed: {step}");
-                instance.commandQueue.Enqueue(new MovementCommand(2, Vector3.MoveTowards(instance.rb[2].position, instance.targetPosition, step)));
+                Debug.Log($"Move: {instance.targetPosition}, Speed: {instance.moveSpeed * Time.fixedDeltaTime}");
+                instance.commandQueue.Enqueue(new MovementCommand(2, instance.targetPosition));
             }
 
             else if (commandAxis == "F")
