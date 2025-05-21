@@ -37,7 +37,7 @@ public class ParseGCode : MonoBehaviour
     protected StreamReader reader = null;
     protected string text = " "; // allow first line to be read below
 
-    public float moveSpeed = 300f;
+    public float moveSpeed = 2f;
 
     public static ParseGCode instance; // needed for static access
 
@@ -45,14 +45,13 @@ public class ParseGCode : MonoBehaviour
     {
         public int rbIndex;
         public Vector3 vector;
-        //public float speed;
+        public float speed;
 
-        //public MovementCommand(int rbIndex, Vector3 vector, int speed)
-        public MovementCommand(int rbIndex, Vector3 vector)
+        public MovementCommand(int rbIndex, Vector3 vector, float speed)
         {
             this.rbIndex = rbIndex;
             this.vector = vector;
-            //this.speed = speed;
+            this.speed = speed;
         }
     }
 
@@ -157,11 +156,11 @@ public class ParseGCode : MonoBehaviour
         {
             int rbIndex = currentCommand.Value.rbIndex;
             Vector3 target = currentCommand.Value.vector;
+            float speed = currentCommand.Value.speed;
             Rigidbody body = rb[rbIndex];
 
             // move towards the target position
-            Vector3 newPos = Vector3.MoveTowards(body.position, target, moveSpeed * Time.fixedDeltaTime);
-            body.MovePosition(newPos);
+            Vector3 newPos = Vector3.MoveTowards(body.position, target, currentCommand.Value.speed * Time.fixedDeltaTime); body.MovePosition(newPos);
 
             // Check if arrived at the target
             if (Vector3.Distance(newPos, target) < arriveThreshold)
@@ -170,7 +169,7 @@ public class ParseGCode : MonoBehaviour
                 currentCommand = null; // Ready for next command
             }
 
-            Debug.Log($"x: {body.position.x}, y: {body.position.y}, z: {body.position.z}");
+            Debug.Log($"x: {body.position.x}, y: {body.position.y}, z: {body.position.z}, speed: {speed}");
         }
     }
 
@@ -189,21 +188,22 @@ public class ParseGCode : MonoBehaviour
                 Debug.Log("X axis: Unity");
                 instance.targetPosition = HandleX(parseCommand(parts[i]));
                 Debug.Log($"Move: {instance.targetPosition}, Speed: {instance.moveSpeed * Time.fixedDeltaTime}");
-                instance.commandQueue.Enqueue(new MovementCommand(0, instance.targetPosition));
+                instance.commandQueue.Enqueue(new MovementCommand(0, instance.targetPosition, instance.moveSpeed));
+
             }
             else if (commandAxis == "Y")
             {
                 Debug.Log("Z axis: Unity");
                 instance.targetPosition = HandleZ(parseCommand(parts[i]));
                 Debug.Log($"Move: {instance.targetPosition}, Speed: {instance.moveSpeed * Time.fixedDeltaTime}");
-                instance.commandQueue.Enqueue(new MovementCommand(1, instance.targetPosition));
+                instance.commandQueue.Enqueue(new MovementCommand(1, instance.targetPosition, instance.moveSpeed));
             }
             else if (commandAxis == "Z")
             {
                 Debug.Log("Y axis: Unity");
                 instance.targetPosition = HandleY(parseCommand(parts[i]));
                 Debug.Log($"Move: {instance.targetPosition}, Speed: {instance.moveSpeed * Time.fixedDeltaTime}");
-                instance.commandQueue.Enqueue(new MovementCommand(2, instance.targetPosition));
+                instance.commandQueue.Enqueue(new MovementCommand(2, instance.targetPosition, instance.moveSpeed));
             }
 
             else if (commandAxis == "F")
@@ -279,7 +279,7 @@ public class ParseGCode : MonoBehaviour
 
     static void SetFeedRate(float value)
     {
-        instance.moveSpeed = value/(60 * 1000);
+        instance.moveSpeed = value/(60 * 10);
         Debug.Log($"Adjusted Speed: {instance.moveSpeed}");
         return;
     }
