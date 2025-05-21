@@ -24,29 +24,36 @@ public class ParseGCode : MonoBehaviour
         { "Y", HandleZ }  // gcode uses Y for Unity Z axis
     };
 
-    //static Dictionary<Vector3, int> printerMovements = new Dictionary<Vector3, int>>
-    //{};
-
-
     // path to .gcode file
     /** FUTURE DEVELOPMENT: allow user to select file **/
     // string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
     // string path = "Assets/Scripts/Resources/sample.txt";
     string path = "Assets/Scripts/Resources/isolated.gcode";
 
-    // initialize queue of processed commands
-    private Queue<Vector3> q = new Queue<Vector3>();
-    private Queue<int> qHelper = new Queue<int>();
-
     private Vector3 targetPosition = new Vector3(0,0,0);
     private float arriveThreshold = 0.01f;
 
     protected StreamReader reader = null;
-    protected string text = " "; // assigned to allow first line to be read below
+    protected string text = " "; // allow first line to be read below
 
     public float moveSpeed = 300f;
 
     public static ParseGCode instance; // needed for static access
+
+    public struct MovementCommand
+    {
+        public int rbIndex;
+        public Vector3 vector;
+
+        public MovementCommand(int rbIndex, Vector3 vector)
+        {
+            this.rbIndex = rbIndex;
+            this.vector = vector;
+        }
+    }
+
+    Queue<MovementCommand> commandQueue = new Queue<MovementCommand>();
+
     void Awake()
     {
         instance = this;
@@ -59,6 +66,7 @@ public class ParseGCode : MonoBehaviour
         if (rb == null || rb.Length < 4)
         {
             Debug.LogError("Rigidbody array not assigned or wrong size");
+            Debug.Log("Rb assignments: 0 = head (x-axis), 1 = bed (z-axis), 2 = moving truss (y-axis), 3 = printer frame");
             return;
         }
 
@@ -136,22 +144,23 @@ public class ParseGCode : MonoBehaviour
     void FixedUpdate()
     {
         // dequeue and process commands
-        //if (instance.targetPosition == Vector3(0,0,0) && q.Count > 0)
-        //{
-        //    instance.targetPosition = q.Dequeue();
-        //}
+        if (commandQueue.Count > 0)
+        {
+            MovementCommand cmd = commandQueue.Dequeue();
+            //rb[cmd.rbIndex].transform.position += cmd.vector; // need to make smooth animation for movements
+        }
 
-        //if (instance.targetPosition != Vector3(0,0,0)
-        //{
-        //    Vector3 target = instance.targetPosition.Value;
-        //    Vector3 newPos = Vector3.MoveTowards(rb[].position, target, moveSpeed * Time.fixedDeltaTime);
-        //    rb.MovePosition(newPos);
+        else
+        {
+            //Vector3 target = instance.targetPosition.Value;
+            //Vector3 newPos = Vector3.MoveTowards(rb[1].position, target, moveSpeed * Time.fixedDeltaTime); // adjust number
+            //rb.MovePosition(newPos);
 
-        //    if (Vector3.Distance(rb.position, target) < arriveThreshold)
-        //    {
-        //        currentTarget = null; // Finished this target
-        //    }
-        //}
+            //if (Vector3.Distance(rb.position, target) < arriveThreshold)
+            //{
+            //    //currentTarget = null; // movement complete
+            //}
+        }
     }
 
     static void HandleG1(string[] parts)
@@ -182,9 +191,7 @@ public class ParseGCode : MonoBehaviour
                 instance.targetPosition = HandleY(parseCommand(parts[i]));
                 var step = instance.moveSpeed * Time.fixedDeltaTime; // calculate distance to move
                 Debug.Log($"Move: {instance.targetPosition}, Speed: {step}");
-                //EnqueueMove(instance.rb[2].position = Vector3.MoveTowards(instance.rb[2].position, instance.targetPosition, step));
-                //EnqueueIndex(2);instance.rb[2].position = Vector3.MoveTowards(instance.rb[2].position, instance.targetPosition, step)
-                instance.rb[2].position = Vector3.MoveTowards(instance.rb[2].position, instance.targetPosition, step);
+                instance.commandQueue.Enqueue(new MovementCommand(2, Vector3.MoveTowards(instance.rb[2].position, instance.targetPosition, step)));
             }
 
             else if (commandAxis == "F")
@@ -264,17 +271,6 @@ public class ParseGCode : MonoBehaviour
         Debug.Log($"Adjusted Speed: {instance.moveSpeed}");
         return;
     }
-
-    //static void EnqueueMove(Vector3 position)
-    //{
-    //    q.Enqueue(position);
-    //}
-
-    //static void EnqueueIndex(int rbIndex)
-    //{
-    //    qHelper.Enqueue(rbIndex);
-    //}
-
 }
 
 
