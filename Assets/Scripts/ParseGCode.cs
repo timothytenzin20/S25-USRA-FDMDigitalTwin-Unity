@@ -9,11 +9,19 @@ using System.Collections.Specialized;
 public class ParseGCode : MonoBehaviour
 {
     public Rigidbody[] rb;
+
+    public Rigidbody head;
+    public Rigidbody bed;
+    public Rigidbody beam;
+    public Rigidbody frame;
+    public Rigidbody origin;
+
     static Dictionary<string, Action<string[]>> gcodeHandlers = new Dictionary<string, Action<string[]>>
     {
         { "G1", HandleG1 },
         { "G2", HandleG2 },
-        { "M3", HandleM3 }
+        { "G90", HandleG90 },
+        { "G91", HandleG91 }
         /** FUTURE DEVELOPMENT: MORE COMMANDS **/
     };
 
@@ -37,7 +45,7 @@ public class ParseGCode : MonoBehaviour
     protected StreamReader reader = null;
     protected string text = " "; // allow first line to be read below
 
-    public float moveSpeed = 2f;
+    private float moveSpeed = 2f;
 
     public static ParseGCode instance; // needed for static access
 
@@ -66,22 +74,30 @@ public class ParseGCode : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        if (rb == null || rb.Length < 4)
+        if (rb == null || rb.Length < 5)
         {
             Debug.LogError("Rigidbody array not assigned or wrong size");
-            Debug.Log("Rb assignments: 0 = head (x-axis), 1 = bed (z-axis), 2 = moving truss (y-axis), 3 = printer frame");
+            Debug.Log("Rb assignments: 0 = head (x-axis), 1 = bed (z-axis), 2 = moving truss (y-axis), 3 = printer frame, 4 = origin");
             return;
         }
 
-        // 0 = head (x-axis), 1 = bed (z-axis), 2 = beam (y-axis), 3 = frame
-        rb[0].useGravity = false;
-        rb[0].isKinematic = true;
-        rb[1].useGravity = false;
-        rb[1].isKinematic = true;
-        rb[2].useGravity = false;
-        rb[2].isKinematic = true;
-        rb[3].useGravity = false;
-        rb[3].isKinematic = true;
+        head = rb[0];
+        bed = rb[1];
+        beam = rb[2];
+        frame = rb[3];
+        origin = rb[4];
+
+        // 0 = head (x-axis), 1 = bed (z-axis), 2 = beam (y-axis), 3 = frame, 4 = origin
+        head.useGravity = false;
+        head.isKinematic = true;
+        bed.useGravity = false;
+        bed.isKinematic = true;
+        beam.useGravity = false;
+        beam.isKinematic = true;
+        frame.useGravity = false;
+        frame.isKinematic = true;
+        origin.useGravity = false;
+        origin.isKinematic = false;
 
         if (File.Exists(path))
         {
@@ -160,6 +176,7 @@ public class ParseGCode : MonoBehaviour
             Rigidbody body = rb[rbIndex];
 
             // move towards the target position
+            Debug.Log($"Moving {body.position} to {target}");
             Vector3 newPos = Vector3.MoveTowards(body.position, target, currentCommand.Value.speed * Time.fixedDeltaTime); body.MovePosition(newPos);
 
             // Check if arrived at the target
@@ -169,7 +186,7 @@ public class ParseGCode : MonoBehaviour
                 currentCommand = null; // Ready for next command
             }
 
-            Debug.Log($"x: {body.position.x}, y: {body.position.y}, z: {body.position.z}, speed: {speed}");
+            //Debug.Log($"x: {body.position.x}, y: {body.position.y}, z: {body.position.z}, speed: {speed}");
         }
     }
 
@@ -232,14 +249,24 @@ public class ParseGCode : MonoBehaviour
         }
     }
 
-    static void HandleM3(string[] parts)
+    static void HandleG90(string[] parts)
     {
-        Debug.Log("Handling M3 command");
+        Debug.Log("Handling G90 command");
         foreach (var part in parts)
         {
             Debug.Log(part);
         }
     }
+
+    static void HandleG91(string[] parts)
+    {
+        Debug.Log("Handling G91 command");
+        foreach (var part in parts)
+        {
+            Debug.Log(part);
+        }
+    }
+
 
     static float parseCommand(string command)
     {
@@ -258,21 +285,21 @@ public class ParseGCode : MonoBehaviour
 
     static Vector3 HandleX(float value)
     {
-        Vector3 targetPosition = (new Vector3(value,instance.rb[0].position.y, instance.rb[0].position.z));
+        Vector3 targetPosition = (new Vector3(value,instance.head.position.y, instance.head.position.z));
         Debug.Log(targetPosition);
         return targetPosition;
     }
 
     static Vector3 HandleY(float value)
     {
-        Vector3 targetPosition = (new Vector3(instance.rb[2].position.x, value, instance.rb[2].position.z));
+        Vector3 targetPosition = (new Vector3(instance.beam.position.x, value, instance.beam.position.z));
         Debug.Log(targetPosition);
         return targetPosition;
     }
 
     static Vector3 HandleZ(float value)
     {
-        Vector3 targetPosition = (new Vector3(instance.rb[1].position.x, instance.rb[1].position.y, value));
+        Vector3 targetPosition = (new Vector3(instance.bed.position.x, instance.bed.position.y, value));
         Debug.Log(targetPosition);
         return targetPosition;
     }
