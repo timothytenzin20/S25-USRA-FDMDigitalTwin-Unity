@@ -10,11 +10,11 @@ public class ParseGCode : MonoBehaviour
 {
     public Rigidbody[] rb;
 
-    public Rigidbody head;
-    public Rigidbody bed;
-    public Rigidbody beam;
-    public Rigidbody frame;
-    public Rigidbody origin;
+    Rigidbody head;
+    Rigidbody bed;
+    Rigidbody beam;
+    Rigidbody frame;
+    Rigidbody origin;
 
     static Dictionary<string, Action<string[]>> gcodeHandlers = new Dictionary<string, Action<string[]>>
     {
@@ -212,7 +212,6 @@ public class ParseGCode : MonoBehaviour
                 instance.targetPosition = HandleX(parseCommand(parts[i]));
                 Debug.Log($"Move: {instance.targetPosition}, Speed: {instance.moveSpeed * Time.fixedDeltaTime}");
                 instance.commandQueue.Enqueue(new MovementCommand(0, instance.targetPosition, instance.moveSpeed));
-
             }
             else if (commandAxis == "Y")
             {
@@ -284,21 +283,21 @@ public class ParseGCode : MonoBehaviour
 
     static Vector3 HandleX(float value)
     {
-        Vector3 targetPosition = (new Vector3(instance.head.position.x + value,instance.head.position.y, instance.head.position.z));
+        Vector3 targetPosition = (new Vector3(instance.origin.position.x + value, instance.beam.transform.position.y, instance.beam.transform.position.z));
         Debug.Log(targetPosition);
         return targetPosition;
     }
 
     static Vector3 HandleY(float value)
     {
-        Vector3 targetPosition = (new Vector3(instance.beam.position.x, instance.beam.position.y +value, instance.beam.position.z));
+        Vector3 targetPosition = (new Vector3(instance.beam.position.x, instance.origin.position.y +value, instance.beam.position.z));
         Debug.Log(targetPosition);
         return targetPosition;
     }
 
     static Vector3 HandleZ(float value)
     {
-        Vector3 targetPosition = (new Vector3(instance.bed.position.x, instance.bed.position.y, instance.bed.position.z + value));
+        Vector3 targetPosition = (new Vector3(instance.bed.position.x, instance.bed.position.y, instance.origin.position.z + value));
         Debug.Log(targetPosition);
         return targetPosition;
     }
