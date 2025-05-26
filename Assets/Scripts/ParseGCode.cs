@@ -187,7 +187,7 @@ public class ParseGCode : MonoBehaviour
                 currentCommand = null; // Ready for next command
             }
 
-            Debug.Log($"x: {body.position.x}, y: {body.position.y}, z: {body.position.z}, speed: {speed}");
+            //Debug.Log($"x: {body.position.x}, y: {body.position.y}, z: {body.position.z}, speed: {speed}");
         }
     }
 
@@ -283,7 +283,7 @@ public class ParseGCode : MonoBehaviour
 
     static Vector3 HandleX(float value)
     {
-        Vector3 targetPosition = (new Vector3(instance.origin.position.x + value, instance.beam.transform.position.y, instance.beam.transform.position.z));
+        Vector3 targetPosition = new Vector3(instance.head.transform.localPosition.x + value, instance.head.transform.localPosition.y, instance.head.transform.localPosition.z);
         Debug.Log(targetPosition);
         return targetPosition;
     }
