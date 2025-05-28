@@ -340,7 +340,7 @@ MeshCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 5
   m_Convex: 0
   m_CookingOptions: 30
@@ -389,7 +389,7 @@ MeshCollider:
   m_LayerOverridePriority: 0
   m_IsTrigger: 0
   m_ProvidesContacts: 0
-  m_Enabled: 1
+  m_Enabled: 0
   serializedVersion: 5
   m_Convex: 0
   m_CookingOptions: 30
@@ -775,8 +775,7 @@ Transform:
   m_LocalPosition: {x: 1.8113999, y: 14.63917, z: 2.0174}
   m_LocalScale: {x: 100, y: 100, z: 100}
   m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 7755212763032147582}
+  m_Children: []
   m_Father: {fileID: 543450652620729497}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!4 &543450652620729497
@@ -794,6 +793,7 @@ Transform:
   m_Children:
   - {fileID: 7890384202867785467}
   - {fileID: 1553991826462827772}
+  - {fileID: 7755212763032147582}
   - {fileID: 323736333459784359}
   - {fileID: 739952823}
   m_Father: {fileID: 0}
@@ -1088,6 +1088,7 @@ GameObject:
   - component: {fileID: 1087687547}
   - component: {fileID: 1087687546}
   - component: {fileID: 1087687554}
+  - component: {fileID: 7755212763032147583}
   m_Layer: 0
   m_Name: ASM Printing Head - E plate-1
   m_TagString: Untagged
@@ -1131,13 +1132,27 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5119805131454431537}
   serializedVersion: 2
-  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: -0.018113999, y: -0.008926999, z: 0.0010090052}
-  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_LocalRotation: {x: -0.7071068, y: -0, z: -0, w: 0.7071067}
+  m_LocalPosition: {x: 0, y: 14.74007, z: 2.9101}
+  m_LocalScale: {x: 100, y: 100, z: 100}
   m_ConstrainProportionsScale: 0
   m_Children: []
-  m_Father: {fileID: 323736333459784359}
+  m_Father: {fileID: 543450652620729497}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7755212763032147583
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5119805131454431537}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e8ef12d41343ccd4e994232e5d04b719, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  X_axis: {fileID: 1087687542}
+  printerHead: {fileID: 1087687546}
 --- !u!4 &7890384202867785467
 Transform:
   m_ObjectHideFlags: 0

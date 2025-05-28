@@ -6,6 +6,8 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Collections.Specialized;
 
+// 1 unity unit = 2 cm
+
 public class ParseGCode : MonoBehaviour
 {
     public Rigidbody[] rb;
@@ -35,16 +37,16 @@ public class ParseGCode : MonoBehaviour
 
     // path to .gcode file
     /** FUTURE DEVELOPMENT: allow user to select file **/
-    string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
-    //string path = "Assets/Scripts/Resources/sample.txt";
+    //string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
+    string path = "Assets/Scripts/Resources/sample.txt";
     //string path = "Assets/Scripts/Resources/isolated.gcode";
 
-    private Vector3 targetPosition = new Vector3(0,0,0);
+    private Vector3 targetPosition;
     private float arriveThreshold = 0.01f;
     private MovementCommand? currentCommand = null;
 
     protected StreamReader reader = null;
-    protected string text = " "; // allow first line to be read below
+    protected string text; // allow first line to be read below
 
     private float moveSpeed = 2f;
 
@@ -66,6 +68,8 @@ public class ParseGCode : MonoBehaviour
 
     Queue<MovementCommand> commandQueue = new Queue<MovementCommand>();
 
+    private static bool isAbsolutePositioning = true;
+
     void Awake()
     {
         instance = this;
@@ -78,7 +82,7 @@ public class ParseGCode : MonoBehaviour
         if (rb == null || rb.Length < 5)
         {
             Debug.LogError("Rigidbody array not assigned or wrong size");
-            Debug.Log("Rb assignments: 0 = head (x-axis), 1 = bed (z-axis), 2 = moving truss (y-axis), 3 = printer frame, 4 = origin");
+            Debug.Log("Rb assignments: 0 = head (x-axis), 1 = bed (z-axis), 2 = moving beam (y-axis), 3 = printer frame, 4 = origin");
             return;
         }
 
@@ -102,9 +106,9 @@ public class ParseGCode : MonoBehaviour
 
         if (File.Exists(path))
         {
-            Debug.Log("File exists");
-            reader = new StreamReader(path);
             Debug.Log("Reading file");
+            //Debug.Log("File exists");
+            reader = new StreamReader(path);
         }
         else
         {
@@ -124,7 +128,7 @@ public class ParseGCode : MonoBehaviour
 
         if (text == null)
         {
-            Debug.Log("End of file reached or no more lines to read.");
+            Debug.Log("End of file reached.");
             reader.Close();
             reader = null;
             return;
@@ -177,8 +181,10 @@ public class ParseGCode : MonoBehaviour
             Rigidbody body = rb[rbIndex];
 
             // move towards the target position
+            Debug.Log(body.name);
             Debug.Log($"Moving {body.position} to {target}");
-            Vector3 newPos = Vector3.MoveTowards(body.position, target, currentCommand.Value.speed * Time.fixedDeltaTime); body.MovePosition(newPos);
+            Vector3 newPos = Vector3.MoveTowards(body.position, target, currentCommand.Value.speed * Time.fixedDeltaTime);
+            body.MovePosition(newPos);
 
             // Check if arrived at the target
             if (Vector3.Distance(newPos, target) < arriveThreshold)
@@ -193,12 +199,12 @@ public class ParseGCode : MonoBehaviour
 
     static void HandleG1(string[] parts)
     {
-        Debug.Log("Handling G1 command");
-        if (parts[0] == "G0")
-        {
-            Debug.Log("Handling G0 command");
-            instance.moveSpeed = 300/1000;
-        }
+        //Debug.Log("Handling G1 command");
+        //if (parts[0] == "G0")
+        //{
+        //    Debug.Log("Handling G0 command");
+        //    instance.moveSpeed = 300/1000;
+        //}
         //foreach (var part in parts)
         //{
         //    Debug.Log(part);
@@ -208,23 +214,23 @@ public class ParseGCode : MonoBehaviour
             string commandAxis = getCommandLetter(parts[i]);
             if (commandAxis == "X")
             {
-                Debug.Log("X axis: Unity");
+                //Debug.Log("X axis: Unity");
                 instance.targetPosition = HandleX(parseCommand(parts[i]));
-                Debug.Log($"Move: {instance.targetPosition}, Speed: {instance.moveSpeed * Time.fixedDeltaTime}");
+                //Debug.Log($"Move: {instance.targetPosition}, Speed: {instance.moveSpeed * Time.fixedDeltaTime}");
                 instance.commandQueue.Enqueue(new MovementCommand(0, instance.targetPosition, instance.moveSpeed));
             }
             else if (commandAxis == "Y")
             {
-                Debug.Log("Z axis: Unity");
+                //Debug.Log("Z axis: Unity");
                 instance.targetPosition = HandleZ(parseCommand(parts[i]));
-                Debug.Log($"Move: {instance.targetPosition}, Speed: {instance.moveSpeed * Time.fixedDeltaTime}");
+                //Debug.Log($"Move: {instance.targetPosition}, Speed: {instance.moveSpeed * Time.fixedDeltaTime}");
                 instance.commandQueue.Enqueue(new MovementCommand(1, instance.targetPosition, instance.moveSpeed));
             }
             else if (commandAxis == "Z")
             {
-                Debug.Log("Y axis: Unity");
+                //Debug.Log("Y axis: Unity");
                 instance.targetPosition = HandleY(parseCommand(parts[i]));
-                Debug.Log($"Move: {instance.targetPosition}, Speed: {instance.moveSpeed * Time.fixedDeltaTime}");
+                //Debug.Log($"Move: {instance.targetPosition}, Speed: {instance.moveSpeed * Time.fixedDeltaTime}");
                 instance.commandQueue.Enqueue(new MovementCommand(2, instance.targetPosition, instance.moveSpeed));
             }
             // need to calculate first to be stored to the action (i flipped the order of command parts addressed)
@@ -240,7 +246,7 @@ public class ParseGCode : MonoBehaviour
             }
             else
             {
-                Debug.Log($"Non-axis command: {commandAxis}");
+                //Debug.Log($"Non-axis command: {commandAxis}");
             }
         }
         return;
@@ -257,12 +263,14 @@ public class ParseGCode : MonoBehaviour
 
     static void HandleG90(string[] parts)
     {
-        Debug.Log("Handling G90 command");
+        Debug.Log("Handling G90 command: ABSOLUTE");
+        isAbsolutePositioning = true;
     }
 
     static void HandleG91(string[] parts)
     {
-        Debug.Log("Handling G91 command");
+        Debug.Log("Handling G91 command: RELATIVE");
+        isAbsolutePositioning = false;
     }
 
 
@@ -283,29 +291,27 @@ public class ParseGCode : MonoBehaviour
 
     static Vector3 HandleX(float value)
     {
-        Vector3 targetPosition = new Vector3(instance.head.transform.localPosition.x + value, instance.head.transform.localPosition.y, instance.head.transform.localPosition.z);
-        Debug.Log(targetPosition);
-        return targetPosition;
+        float targetX = isAbsolutePositioning ? instance.origin.position.x + value: instance.head.position.x + value;
+        return new Vector3(targetX, instance.head.position.y, instance.head.position.z);
     }
 
-    static Vector3 HandleY(float value)
+    static Vector3 HandleY(float value) // value is .gcode Z-axis (vertical)
     {
-        Vector3 targetPosition = (new Vector3(instance.beam.position.x, instance.origin.position.y +value, instance.beam.position.z));
-        Debug.Log(targetPosition);
-        return targetPosition;
+        float offsetY = 2f; // offset for the printer head clipping the bed
+        float targetY = isAbsolutePositioning ? instance.origin.position.y + value + offsetY : instance.beam.position.y + value;
+        return new Vector3(instance.beam.position.x, targetY, instance.beam.position.z);
     }
 
-    static Vector3 HandleZ(float value)
+    static Vector3 HandleZ(float value) // value is .gcode Y-axis
     {
-        Vector3 targetPosition = (new Vector3(instance.bed.position.x, instance.bed.position.y, instance.origin.position.z + value));
-        Debug.Log(targetPosition);
-        return targetPosition;
+        float targetZ = isAbsolutePositioning ? instance.origin.position.z + value : instance.bed.position.z + value;
+        return new Vector3(instance.bed.position.x, instance.bed.position.y, targetZ);
     }
 
     static void SetFeedRate(float value)
     {
         instance.moveSpeed = value/(1000);
-        Debug.Log($"Adjusted Speed: {instance.moveSpeed}");
+        //Debug.Log($"Adjusted Speed: {instance.moveSpeed}");
         return;
     }
 }
