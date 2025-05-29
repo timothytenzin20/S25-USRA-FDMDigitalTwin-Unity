@@ -37,8 +37,8 @@ public class ParseGCode : MonoBehaviour
 
     // path to .gcode file
     /** FUTURE DEVELOPMENT: allow user to select file **/
-    //string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
-    string path = "Assets/Scripts/Resources/sample.txt";
+    string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
+    //string path = "Assets/Scripts/Resources/sample.txt";
     //string path = "Assets/Scripts/Resources/isolated.gcode";
 
     private Vector3 targetPosition;
@@ -182,6 +182,21 @@ public class ParseGCode : MonoBehaviour
 
             // move towards the target position
             Debug.Log(body.name);
+            if (body.name == "beam")
+            {
+                // Special handling for the head to follow the beam
+                Vector3 headPosition = rb[0].position;
+                Vector3 target2 = new Vector3(headPosition.x, rb[2].position.y, headPosition.z);
+                rb[0].MovePosition(Vector3.MoveTowards(rb[0].position, target2, speed * Time.fixedDeltaTime));
+            }
+            else if (body.name == "head")
+            {
+                // Special handling for the beam to follow the head
+                Vector3 beamPosition = rb[2].position;
+                Vector3 target2 = new Vector3(beamPosition.x, rb[0].position.y, beamPosition.z);
+                rb[2].MovePosition(Vector3.MoveTowards(rb[2].position, target2, speed * Time.fixedDeltaTime));
+            }
+
             Debug.Log($"Moving {body.position} to {target}");
             Vector3 newPos = Vector3.MoveTowards(body.position, target, currentCommand.Value.speed * Time.fixedDeltaTime);
             body.MovePosition(newPos);
@@ -209,7 +224,7 @@ public class ParseGCode : MonoBehaviour
         //{
         //    Debug.Log(part);
         //}
-        for (var i = parts.Length - 1; i > 0; i--)
+        for (var i = 1; i < parts.Length; i++)
         {
             string commandAxis = getCommandLetter(parts[i]);
             if (commandAxis == "X")
@@ -291,26 +306,59 @@ public class ParseGCode : MonoBehaviour
 
     static Vector3 HandleX(float value)
     {
-        float targetX = isAbsolutePositioning ? instance.origin.position.x + value: instance.head.position.x + value;
-        return new Vector3(targetX, instance.head.position.y, instance.head.position.z);
+        // convert for Unity 2inch per unit
+        float valueUnity = value/50.8f;
+        float targetX = isAbsolutePositioning ? instance.origin.position.x + valueUnity : instance.head.position.x + valueUnity;
+        Vector3 response = new Vector3(targetX, instance.head.position.y, instance.head.position.z);
+        Debug.Log($"HandleX: {response}");
+        return response;
     }
 
     static Vector3 HandleY(float value) // value is .gcode Z-axis (vertical)
     {
+        // convert for Unity 2inch per unit
+        float valueUnity = value / 50.8f;
         float offsetY = 2f; // offset for the printer head clipping the bed
-        float targetY = isAbsolutePositioning ? instance.origin.position.y + value + offsetY : instance.beam.position.y + value;
+        float targetY = isAbsolutePositioning ? instance.origin.position.y + valueUnity + offsetY : instance.beam.position.y + valueUnity;
         return new Vector3(instance.beam.position.x, targetY, instance.beam.position.z);
     }
+    // CG 
+    //static Vector3 HandleY(float value)
+    //{
+    //    float offsetY = 0.1009f; // match what was in FollowXAxis.cs
+
+    //    float targetY = isAbsolutePositioning
+    //        ? instance.origin.position.y + value
+    //        : instance.beam.position.y + value;
+
+    //    // Queue beam movement (rbIndex 2)
+    //    Vector3 beamTarget = new Vector3(instance.beam.position.x, targetY, instance.beam.position.z);
+    //    instance.commandQueue.Enqueue(new MovementCommand(2, beamTarget, instance.moveSpeed));
+
+    //    // Queue head Y-follow (rbIndex 0, only change Y)
+    //    float headY = targetY + offsetY;
+    //    Vector3 headFollowTarget = new Vector3(instance.head.position.x, headY, instance.head.position.z);
+    //    instance.commandQueue.Enqueue(new MovementCommand(0, headFollowTarget, instance.moveSpeed));
+
+    //    return beamTarget;
+    //}
+
 
     static Vector3 HandleZ(float value) // value is .gcode Y-axis
     {
-        float targetZ = isAbsolutePositioning ? instance.origin.position.z + value : instance.bed.position.z + value;
+        // convert for Unity 2inch per unit
+        float valueUnity = value / 50.8f;
+        float targetZ = isAbsolutePositioning ? instance.origin.position.z + valueUnity : instance.bed.position.z + valueUnity;
         return new Vector3(instance.bed.position.x, instance.bed.position.y, targetZ);
     }
 
     static void SetFeedRate(float value)
     {
-        instance.moveSpeed = value/(1000);
+        // mm/min to Unity units (2in) per second
+        float mmPerSec = value / 60f;
+        float inchesPerSec = mmPerSec / 25.4f;
+        instance.moveSpeed = inchesPerSec / 2f;
+
         //Debug.Log($"Adjusted Speed: {instance.moveSpeed}");
         return;
     }
