@@ -7,7 +7,10 @@ using System.Runtime.CompilerServices;
 using System.Collections.Specialized;
 
 // 1 unity unit = 2 cm
-
+// home: (0,0,0) =>
+// beam: Vector3(1.81139994,7.24909925,2.01740003)
+// head: Vector3(-4.69999981,7.3499999,2.91009998)
+// bed: Vector3(0,3.70597005,9.07999992)
 public class ParseGCode : MonoBehaviour
 {
     public Rigidbody[] rb;
@@ -37,7 +40,8 @@ public class ParseGCode : MonoBehaviour
 
     // path to .gcode file
     /** FUTURE DEVELOPMENT: allow user to select file **/
-    string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
+    //string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
+    string path = "Assets/Scripts/Resources/smallShark.gcode";
     //string path = "Assets/Scripts/Resources/sample.txt";
     //string path = "Assets/Scripts/Resources/isolated.gcode";
 
@@ -70,11 +74,14 @@ public class ParseGCode : MonoBehaviour
 
     private static bool isAbsolutePositioning = true;
 
+    public GameObject filamentPrefab; 
+    private Vector3 lastExtrudePosition;
+    static float lastEPosition = 0f;
+    private Vector3 filamentShift = new Vector3(-4.6926f, 7.3616f, 2.9300f);
     void Awake()
     {
         instance = this;
     }
-
 
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -214,16 +221,16 @@ public class ParseGCode : MonoBehaviour
 
     static void HandleG1(string[] parts)
     {
-        //Debug.Log("Handling G1 command");
-        //if (parts[0] == "G0")
-        //{
-        //    Debug.Log("Handling G0 command");
-        //    instance.moveSpeed = 300/1000;
-        //}
-        //foreach (var part in parts)
-        //{
-        //    Debug.Log(part);
-        //}
+        Debug.Log("Handling G1 command");
+        if (parts[0] == "G0")
+        {
+            Debug.Log("Handling G0 command");
+            SetFeedRate(300);
+        }
+        foreach (var part in parts)
+        {
+            Debug.Log(part);
+        }
         for (var i = 1; i < parts.Length; i++)
         {
             string commandAxis = getCommandLetter(parts[i]);
@@ -255,10 +262,24 @@ public class ParseGCode : MonoBehaviour
                 float feedRate = parseCommand(parts[i]);
                 SetFeedRate(feedRate);
             }
+
             else if (commandAxis == "E")
             {
-                // Handle extruder movement
+                float newE = parseCommand(parts[i]);
+                float extrusionAmount = isAbsolutePositioning ? newE - lastEPosition : newE;
+
+                if (extrusionAmount > 0f)
+                {
+                    Vector3 currentPosition = instance.head.position;
+                    Debug.Log($"Filament: {currentPosition}");
+                    // Draw from last extrusion point to current position
+                    instance.DrawExtrusion(instance.lastExtrudePosition, currentPosition);
+                    instance.lastExtrudePosition = currentPosition;
+                }
+
+                lastEPosition = isAbsolutePositioning ? newE : lastEPosition + newE;
             }
+
             else
             {
                 //Debug.Log($"Non-axis command: {commandAxis}");
@@ -287,7 +308,6 @@ public class ParseGCode : MonoBehaviour
         Debug.Log("Handling G91 command: RELATIVE");
         isAbsolutePositioning = false;
     }
-
 
     static float parseCommand(string command)
     {
@@ -320,36 +340,19 @@ public class ParseGCode : MonoBehaviour
         float valueUnity = value / 50.8f;
         float offsetY = 2f; // offset for the printer head clipping the bed
         float targetY = isAbsolutePositioning ? instance.origin.position.y + valueUnity + offsetY : instance.beam.position.y + valueUnity;
-        return new Vector3(instance.beam.position.x, targetY, instance.beam.position.z);
+        Vector3 response =  new Vector3(instance.beam.position.x, targetY, instance.beam.position.z);
+        Debug.Log($"HandleY: {response}");
+        return response;
     }
-    // CG 
-    //static Vector3 HandleY(float value)
-    //{
-    //    float offsetY = 0.1009f; // match what was in FollowXAxis.cs
-
-    //    float targetY = isAbsolutePositioning
-    //        ? instance.origin.position.y + value
-    //        : instance.beam.position.y + value;
-
-    //    // Queue beam movement (rbIndex 2)
-    //    Vector3 beamTarget = new Vector3(instance.beam.position.x, targetY, instance.beam.position.z);
-    //    instance.commandQueue.Enqueue(new MovementCommand(2, beamTarget, instance.moveSpeed));
-
-    //    // Queue head Y-follow (rbIndex 0, only change Y)
-    //    float headY = targetY + offsetY;
-    //    Vector3 headFollowTarget = new Vector3(instance.head.position.x, headY, instance.head.position.z);
-    //    instance.commandQueue.Enqueue(new MovementCommand(0, headFollowTarget, instance.moveSpeed));
-
-    //    return beamTarget;
-    //}
-
 
     static Vector3 HandleZ(float value) // value is .gcode Y-axis
     {
         // convert for Unity 2inch per unit
         float valueUnity = value / 50.8f;
         float targetZ = isAbsolutePositioning ? instance.origin.position.z + valueUnity : instance.bed.position.z + valueUnity;
-        return new Vector3(instance.bed.position.x, instance.bed.position.y, targetZ);
+        Vector3 response = new Vector3(instance.bed.position.x, instance.bed.position.y, targetZ);
+        Debug.Log($"HandleZ: {response}");
+        return response;
     }
 
     static void SetFeedRate(float value)
@@ -362,5 +365,15 @@ public class ParseGCode : MonoBehaviour
         //Debug.Log($"Adjusted Speed: {instance.moveSpeed}");
         return;
     }
-}
 
+    public void DrawExtrusion(Vector3 from, Vector3 to)
+    {
+        GameObject filamentSegment = Instantiate(filamentPrefab);
+        LineRenderer lr = filamentSegment.GetComponent<LineRenderer>();
+
+        lr.positionCount = 2;
+        lr.SetPosition(0, from);
+        lr.SetPosition(1, to);
+    }
+
+}
