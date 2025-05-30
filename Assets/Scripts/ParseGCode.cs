@@ -368,12 +368,12 @@ public class ParseGCode : MonoBehaviour
 
     public void DrawExtrusion(Vector3 from, Vector3 to)
     {
-        GameObject filamentSegment = Instantiate(filamentPrefab);
-        LineRenderer lr = filamentSegment.GetComponent<LineRenderer>();
+        //GameObject filamentSegment = Instantiate(filamentPrefab);
+        //LineRenderer lr = filamentSegment.GetComponent<LineRenderer>();
 
-        lr.positionCount = 2;
-        lr.SetPosition(0, from);
-        lr.SetPosition(1, to);
+        //lr.positionCount = 2;
+        //lr.SetPosition(0, from);
+        //lr.SetPosition(1, to);
     }
 
 }
