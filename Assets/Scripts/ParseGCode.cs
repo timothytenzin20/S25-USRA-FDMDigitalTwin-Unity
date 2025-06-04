@@ -41,7 +41,9 @@ public class ParseGCode : MonoBehaviour
     // path to .gcode file
     /** FUTURE DEVELOPMENT: allow user to select file **/
     //string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
-    string path = "Assets/Scripts/Resources/smallShark.gcode";
+    //string path = "Assets/Scripts/Resources/smallShark.gcode";
+    //string path = "Assets/Scripts/Resources/heart.gcode";
+    string path = "Assets/Scripts/Resources/detailedHeart.gcode";
     //string path = "Assets/Scripts/Resources/sample.txt";
     //string path = "Assets/Scripts/Resources/isolated.gcode";
 
@@ -75,8 +77,6 @@ public class ParseGCode : MonoBehaviour
     private static bool isAbsolutePositioning = true;
 
     public GameObject filamentPrefab; 
-    private Vector3 lastExtrudePosition;
-    static float lastEPosition = 0f;
     private Vector3 filamentShift = new Vector3(-4.6926f, 7.3616f, 2.9300f);
     void Awake()
     {
@@ -193,7 +193,13 @@ public class ParseGCode : MonoBehaviour
             {
                 // Special handling for the head to follow the beam
                 Vector3 headPosition = rb[0].position;
-                Vector3 target2 = new Vector3(headPosition.x, rb[2].position.y, headPosition.z);
+
+                if (headPosition.y < (body.position.y + 0.11f))
+                {
+                    headPosition.y = body.position.y; 
+                }
+
+                Vector3 target2 = new Vector3(headPosition.x, body.position.y, headPosition.z);
                 rb[0].MovePosition(Vector3.MoveTowards(rb[0].position, target2, speed * Time.fixedDeltaTime));
             }
             else if (body.name == "head")
@@ -265,19 +271,7 @@ public class ParseGCode : MonoBehaviour
 
             else if (commandAxis == "E")
             {
-                float newE = parseCommand(parts[i]);
-                float extrusionAmount = isAbsolutePositioning ? newE - lastEPosition : newE;
-
-                if (extrusionAmount > 0f)
-                {
-                    Vector3 currentPosition = instance.head.position;
-                    Debug.Log($"Filament: {currentPosition}");
-                    // Draw from last extrusion point to current position
-                    instance.DrawExtrusion(instance.lastExtrudePosition, currentPosition);
-                    instance.lastExtrudePosition = currentPosition;
-                }
-
-                lastEPosition = isAbsolutePositioning ? newE : lastEPosition + newE;
+                
             }
 
             else
@@ -361,19 +355,10 @@ public class ParseGCode : MonoBehaviour
         float mmPerSec = value / 60f;
         float inchesPerSec = mmPerSec / 25.4f;
         instance.moveSpeed = inchesPerSec / 2f;
+        //instance.moveSpeed = 10000f;
 
         //Debug.Log($"Adjusted Speed: {instance.moveSpeed}");
         return;
-    }
-
-    public void DrawExtrusion(Vector3 from, Vector3 to)
-    {
-        //GameObject filamentSegment = Instantiate(filamentPrefab);
-        //LineRenderer lr = filamentSegment.GetComponent<LineRenderer>();
-
-        //lr.positionCount = 2;
-        //lr.SetPosition(0, from);
-        //lr.SetPosition(1, to);
     }
 
 }
