@@ -27,7 +27,8 @@ public class ParseGCode : MonoBehaviour
         { "G1", HandleG1 },
         { "G2", HandleG2 },
         { "G90", HandleG90 },
-        { "G91", HandleG91 }
+        { "G91", HandleG91 },
+        { "G92", HandleG92 }
         /** FUTURE DEVELOPMENT: MORE COMMANDS **/
     };
 
@@ -46,6 +47,7 @@ public class ParseGCode : MonoBehaviour
     string path = "Assets/Scripts/Resources/detailedHeart.gcode";
     //string path = "Assets/Scripts/Resources/sample.txt";
     //string path = "Assets/Scripts/Resources/isolated.gcode";
+    //string path = "Assets/Scripts/Resources/Cube_Test.gcode";
 
     private Vector3 targetPosition;
     private float arriveThreshold = 0.01f;
@@ -75,9 +77,10 @@ public class ParseGCode : MonoBehaviour
     Queue<MovementCommand> commandQueue = new Queue<MovementCommand>();
 
     private static bool isAbsolutePositioning = true;
-
+    public static bool printing = false;
     public GameObject filamentPrefab; 
     private Vector3 filamentShift = new Vector3(-4.6926f, 7.3616f, 2.9300f);
+
     void Awake()
     {
         instance = this;
@@ -268,12 +271,10 @@ public class ParseGCode : MonoBehaviour
                 float feedRate = parseCommand(parts[i]);
                 SetFeedRate(feedRate);
             }
-
             else if (commandAxis == "E")
             {
-                
+                printing = true;
             }
-
             else
             {
                 //Debug.Log($"Non-axis command: {commandAxis}");
@@ -303,6 +304,39 @@ public class ParseGCode : MonoBehaviour
         isAbsolutePositioning = false;
     }
 
+    static void HandleG92(string[] parts)
+    {
+        Debug.Log("Handling G92 command: SET POSITION");
+        // G92 X0 Y0 Z0 E0
+        for (var i = 1; i < parts.Length; i++)
+        {
+            string commandAxis = getCommandLetter(parts[i]);
+            if (commandAxis == "X")
+            {
+                instance.head.position = HandleX(parseCommand(parts[i]));
+            }
+            else if (commandAxis == "Y")
+            {
+                instance.bed.position = HandleZ(parseCommand(parts[i]));
+            }
+            else if (commandAxis == "Z")
+            {
+                instance.beam.position = HandleY(parseCommand(parts[i]));
+            }
+            else if (commandAxis == "E")
+            {
+                if (parseCommand(parts[i]) == 0)
+                {
+                    printing = false;
+                }
+            }
+            else
+            {
+                Debug.Log($"Unknown axis in G92: {commandAxis}");
+            }
+        }
+    }
+
     static float parseCommand(string command)
     {
         //Debug.Log($"Parsing command: {command}");
@@ -320,8 +354,8 @@ public class ParseGCode : MonoBehaviour
 
     static Vector3 HandleX(float value)
     {
-        // convert for Unity 2inch per unit
-        float valueUnity = value/50.8f;
+        // convert for Unity 2cm per unit
+        float valueUnity = value / 20f;
         float targetX = isAbsolutePositioning ? instance.origin.position.x + valueUnity : instance.head.position.x + valueUnity;
         Vector3 response = new Vector3(targetX, instance.head.position.y, instance.head.position.z);
         Debug.Log($"HandleX: {response}");
@@ -330,19 +364,19 @@ public class ParseGCode : MonoBehaviour
 
     static Vector3 HandleY(float value) // value is .gcode Z-axis (vertical)
     {
-        // convert for Unity 2inch per unit
-        float valueUnity = value / 50.8f;
+        // convert for Unity 2cm per unit
+        float valueUnity = value / 20f;
         float offsetY = 2f; // offset for the printer head clipping the bed
         float targetY = isAbsolutePositioning ? instance.origin.position.y + valueUnity + offsetY : instance.beam.position.y + valueUnity;
-        Vector3 response =  new Vector3(instance.beam.position.x, targetY, instance.beam.position.z);
+        Vector3 response = new Vector3(instance.beam.position.x, targetY, instance.beam.position.z);
         Debug.Log($"HandleY: {response}");
         return response;
     }
 
     static Vector3 HandleZ(float value) // value is .gcode Y-axis
     {
-        // convert for Unity 2inch per unit
-        float valueUnity = value / 50.8f;
+        // convert for Unity 2cm per unit
+        float valueUnity = value / 20f;
         float targetZ = isAbsolutePositioning ? instance.origin.position.z + valueUnity : instance.bed.position.z + valueUnity;
         Vector3 response = new Vector3(instance.bed.position.x, instance.bed.position.y, targetZ);
         Debug.Log($"HandleZ: {response}");
@@ -351,10 +385,10 @@ public class ParseGCode : MonoBehaviour
 
     static void SetFeedRate(float value)
     {
-        // mm/min to Unity units (2in) per second
+        // mm/min to Unity units (2cm) per second
         float mmPerSec = value / 60f;
-        float inchesPerSec = mmPerSec / 25.4f;
-        instance.moveSpeed = inchesPerSec / 2f;
+        float cmPerSec = mmPerSec / 20f;
+        instance.moveSpeed = cmPerSec;
         //instance.moveSpeed = 10000f;
 
         //Debug.Log($"Adjusted Speed: {instance.moveSpeed}");
