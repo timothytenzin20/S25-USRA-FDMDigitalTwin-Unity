@@ -292,8 +292,8 @@ public class ParseGCode : MonoBehaviour
             {
                 Debug.Log($"Non-axis command: {commandAxis}");
             }
-            instance.syncIterate++;
         }
+        instance.syncIterate++;
         return;
     }
 
