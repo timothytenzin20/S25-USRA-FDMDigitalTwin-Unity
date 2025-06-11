@@ -28,7 +28,9 @@ public class ParseGCode : MonoBehaviour
         { "G2", HandleG2 },
         { "G90", HandleG90 },
         { "G91", HandleG91 },
-        { "G92", HandleG92 }
+        { "G92", HandleG92 },
+        { "G4", HandleG4 },
+        { "G28", HandleG28 }
         /** FUTURE DEVELOPMENT: MORE COMMANDS **/
     };
 
@@ -48,10 +50,11 @@ public class ParseGCode : MonoBehaviour
     //string path = "Assets/Scripts/Resources/sample.txt";
     //string path = "Assets/Scripts/Resources/isolated.gcode";
     //string path = "Assets/Scripts/Resources/Cube_Test.gcode";
+    //string path = "Assets/Scripts/Resources/reducedCube.gcode";
 
     private Vector3 targetPosition;
     private float arriveThreshold = 0.01f;
-    private MovementCommand? currentCommand = null;
+    private List<MovementCommand> activeCommands = new List<MovementCommand>();
 
     protected StreamReader reader = null;
     protected string text; // allow first line to be read below
@@ -59,18 +62,20 @@ public class ParseGCode : MonoBehaviour
     private float moveSpeed = 2f;
 
     public static ParseGCode instance; // needed for static access
-
+    public int syncIterate = 0;
     public struct MovementCommand
     {
         public int rbIndex;
         public Vector3 vector;
         public float speed;
+        public int syncId;
 
-        public MovementCommand(int rbIndex, Vector3 vector, float speed)
+        public MovementCommand(int rbIndex, Vector3 vector, float speed, int syncId)
         {
             this.rbIndex = rbIndex;
             this.vector = vector;
             this.speed = speed;
+            this.syncId = syncId;
         }
     }
 
@@ -178,53 +183,61 @@ public class ParseGCode : MonoBehaviour
     // need to run multiple commands at once
     void FixedUpdate()
     {
-        if (currentCommand == null && commandQueue.Count > 0)
+        if (activeCommands.Count == 0 && commandQueue.Count > 0)
         {
-            currentCommand = commandQueue.Dequeue();
+            activeCommands = DequeueNextCommandGroup(commandQueue);
         }
 
-        if (currentCommand != null)
+        if (activeCommands.Count > 0)
         {
-            int rbIndex = currentCommand.Value.rbIndex;
-            Vector3 target = currentCommand.Value.vector;
-            float speed = currentCommand.Value.speed;
-            Rigidbody body = rb[rbIndex];
+            List<MovementCommand> completed = new List<MovementCommand>();
 
-            // move towards the target position
-            Debug.Log(body.name);
-            if (body.name == "beam")
+            foreach (var cmd in activeCommands)
             {
-                // Special handling for the head to follow the beam
-                Vector3 headPosition = rb[0].position;
+                int rbIndex = cmd.rbIndex;
+                Vector3 target = cmd.vector;
+                float speed = cmd.speed;
+                Rigidbody body = rb[rbIndex];
+                Debug.Log(body.name);
 
-                if (headPosition.y < (body.position.y + 0.11f))
+                // move towards the target position
+                if (body.name == "beam")
                 {
-                    headPosition.y = body.position.y; 
+                    // Special handling for the head to follow the beam
+                    Vector3 headPosition = rb[0].position;
+
+                    if (headPosition.y < (body.position.y + 0.11f))
+                    {
+                        headPosition.y = body.position.y;
+                    }
+
+                    Vector3 target2 = new Vector3(headPosition.x, body.position.y, headPosition.z);
+                    rb[0].MovePosition(Vector3.MoveTowards(rb[0].position, target2, speed * Time.fixedDeltaTime));
+                }
+                else if (body.name == "head")
+                {
+                    // Special handling for the beam to follow the head
+                    Vector3 beamPosition = rb[2].position;
+                    Vector3 target2 = new Vector3(beamPosition.x, rb[0].position.y, beamPosition.z);
+                    rb[2].MovePosition(Vector3.MoveTowards(rb[2].position, target2, speed * Time.fixedDeltaTime));
                 }
 
-                Vector3 target2 = new Vector3(headPosition.x, body.position.y, headPosition.z);
-                rb[0].MovePosition(Vector3.MoveTowards(rb[0].position, target2, speed * Time.fixedDeltaTime));
+                Vector3 newPos = Vector3.MoveTowards(body.position, target, speed * Time.fixedDeltaTime);
+                body.MovePosition(newPos);
+                Debug.Log($"Moving {body.position} to {target}");
+
+                if (Vector3.Distance(newPos, target) < arriveThreshold)
+                {
+                    body.MovePosition(target); 
+                    completed.Add(cmd);
+                }
             }
-            else if (body.name == "head")
+
+            // clear completed commands
+            foreach (var cmd in completed)
             {
-                // Special handling for the beam to follow the head
-                Vector3 beamPosition = rb[2].position;
-                Vector3 target2 = new Vector3(beamPosition.x, rb[0].position.y, beamPosition.z);
-                rb[2].MovePosition(Vector3.MoveTowards(rb[2].position, target2, speed * Time.fixedDeltaTime));
+                activeCommands.Remove(cmd);
             }
-
-            Debug.Log($"Moving {body.position} to {target}");
-            Vector3 newPos = Vector3.MoveTowards(body.position, target, currentCommand.Value.speed * Time.fixedDeltaTime);
-            body.MovePosition(newPos);
-
-            // Check if arrived at the target
-            if (Vector3.Distance(newPos, target) < arriveThreshold)
-            {
-                body.MovePosition(target); // Snap to target to avoid overshoot
-                currentCommand = null; // Ready for next command
-            }
-
-            //Debug.Log($"x: {body.position.x}, y: {body.position.y}, z: {body.position.z}, speed: {speed}");
         }
     }
 
@@ -248,21 +261,21 @@ public class ParseGCode : MonoBehaviour
                 //Debug.Log("X axis: Unity");
                 instance.targetPosition = HandleX(parseCommand(parts[i]));
                 //Debug.Log($"Move: {instance.targetPosition}, Speed: {instance.moveSpeed * Time.fixedDeltaTime}");
-                instance.commandQueue.Enqueue(new MovementCommand(0, instance.targetPosition, instance.moveSpeed));
+                instance.commandQueue.Enqueue(new MovementCommand(0, instance.targetPosition, instance.moveSpeed, instance.syncIterate));
             }
             else if (commandAxis == "Y")
             {
                 //Debug.Log("Z axis: Unity");
                 instance.targetPosition = HandleZ(parseCommand(parts[i]));
                 //Debug.Log($"Move: {instance.targetPosition}, Speed: {instance.moveSpeed * Time.fixedDeltaTime}");
-                instance.commandQueue.Enqueue(new MovementCommand(1, instance.targetPosition, instance.moveSpeed));
+                instance.commandQueue.Enqueue(new MovementCommand(1, instance.targetPosition, instance.moveSpeed, instance.syncIterate));
             }
             else if (commandAxis == "Z")
             {
                 //Debug.Log("Y axis: Unity");
                 instance.targetPosition = HandleY(parseCommand(parts[i]));
                 //Debug.Log($"Move: {instance.targetPosition}, Speed: {instance.moveSpeed * Time.fixedDeltaTime}");
-                instance.commandQueue.Enqueue(new MovementCommand(2, instance.targetPosition, instance.moveSpeed));
+                instance.commandQueue.Enqueue(new MovementCommand(2, instance.targetPosition, instance.moveSpeed, instance.syncIterate));
             }
             // need to calculate first to be stored to the action (i flipped the order of command parts addressed)
             else if (commandAxis == "F")
@@ -277,8 +290,9 @@ public class ParseGCode : MonoBehaviour
             }
             else
             {
-                //Debug.Log($"Non-axis command: {commandAxis}");
+                Debug.Log($"Non-axis command: {commandAxis}");
             }
+            instance.syncIterate++;
         }
         return;
     }
@@ -337,6 +351,17 @@ public class ParseGCode : MonoBehaviour
         }
     }
 
+    static void HandleG4(string[] parts)
+    {
+        Debug.Log("Handling G4 command");
+        // TBD
+    }
+
+    static void HandleG28(string[] parts)
+    {
+        Debug.Log("Handling G28 command: HOMING");
+    }
+
     static float parseCommand(string command)
     {
         //Debug.Log($"Parsing command: {command}");
@@ -393,6 +418,22 @@ public class ParseGCode : MonoBehaviour
 
         //Debug.Log($"Adjusted Speed: {instance.moveSpeed}");
         return;
+    }
+
+    static List<MovementCommand> DequeueNextCommandGroup(Queue<MovementCommand> queue)
+    {
+        if (queue.Count == 0) return new List<MovementCommand>();
+
+        // Peek the next group ID
+        int nextSyncId = queue.Peek().syncId;
+
+        List<MovementCommand> group = new List<MovementCommand>();
+        while (queue.Count > 0 && queue.Peek().syncId == nextSyncId)
+        {
+            group.Add(queue.Dequeue());
+        }
+        Debug.Log($"DequeueNextCommandGroup: {group.Count} commands with sync ID {nextSyncId}");
+        return group;
     }
 
 }
