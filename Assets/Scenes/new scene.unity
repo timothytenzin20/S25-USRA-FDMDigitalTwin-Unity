@@ -312,6 +312,7 @@ MonoBehaviour:
   - {fileID: 1087687542}
   - {fileID: 1190094516}
   - {fileID: 739952824}
+  syncIterate: 0
   filamentPrefab: {fileID: 7084693242036441449, guid: 1b0f22f2625d48a449134ca46459498c, type: 3}
 --- !u!1 &739952817
 GameObject:
@@ -1422,7 +1423,7 @@ Transform:
   m_GameObject: {fileID: 5967381660988737542}
   serializedVersion: 2
   m_LocalRotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071067}
-  m_LocalPosition: {x: 0, y: 3.70597, z: 9.08}
+  m_LocalPosition: {x: 0, y: 3.71, z: 3.74}
   m_LocalScale: {x: 100, y: 100, z: 100}
   m_ConstrainProportionsScale: 0
   m_Children: []

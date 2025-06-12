@@ -46,11 +46,11 @@ public class ParseGCode : MonoBehaviour
     //string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
     //string path = "Assets/Scripts/Resources/smallShark.gcode";
     //string path = "Assets/Scripts/Resources/heart.gcode";
-    string path = "Assets/Scripts/Resources/detailedHeart.gcode";
+    //string path = "Assets/Scripts/Resources/detailedHeart.gcode";
     //string path = "Assets/Scripts/Resources/sample.txt";
     //string path = "Assets/Scripts/Resources/isolated.gcode";
     //string path = "Assets/Scripts/Resources/Cube_Test.gcode";
-    //string path = "Assets/Scripts/Resources/reducedCube.gcode";
+    string path = "Assets/Scripts/Resources/reducedCubeTest.gcode";
 
     private Vector3 targetPosition;
     private float arriveThreshold = 0.01f;
@@ -360,8 +360,12 @@ public class ParseGCode : MonoBehaviour
     static void HandleG28(string[] parts)
     {
         Debug.Log("Handling G28 command: HOMING");
+        instance.commandQueue.Enqueue(new MovementCommand(0, new Vector3(-4.69999981f, 7.3499999f, 2.91009998f), instance.moveSpeed, instance.syncIterate));
+        instance.commandQueue.Enqueue(new MovementCommand(1, new Vector3(0f, 3.70597005f, 9.07999992f), instance.moveSpeed, instance.syncIterate));
+        instance.commandQueue.Enqueue(new MovementCommand(2, new Vector3(1.81139994f, 7.24909925f, 2.01740003f), instance.moveSpeed, instance.syncIterate));
+        instance.syncIterate++;
     }
-
+ 
     static float parseCommand(string command)
     {
         //Debug.Log($"Parsing command: {command}");
@@ -403,7 +407,7 @@ public class ParseGCode : MonoBehaviour
         // convert for Unity 2cm per unit
         float valueUnity = value / 20f;
         float targetZ = isAbsolutePositioning ? instance.origin.position.z + valueUnity : instance.bed.position.z + valueUnity;
-        Vector3 response = new Vector3(instance.bed.position.x, instance.bed.position.y, targetZ);
+        Vector3 response = new Vector3(instance.bed.position.x, instance.bed.position.y, -targetZ);
         Debug.Log($"HandleZ: {response}");
         return response;
     }

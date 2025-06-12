@@ -7,6 +7,7 @@ M140 S60  ; Set bed temperature to 60 C
 M190 S60  ; Wait for bed temperature to reach 60 C
 M109 S200 ; Wait for hotend temperature to reach 200 C
 G28  ; Home all axes
+
 G29  ; Auto bed leveling (if supported)
 G92 E0 ; Reset extruder position
 G1 Z0.2 F3000 ; Move nozzle to 0.2mm above bed
