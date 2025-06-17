@@ -47,10 +47,10 @@ public class ParseGCode : MonoBehaviour
     //string path = "Assets/Scripts/Resources/smallShark.gcode";
     //string path = "Assets/Scripts/Resources/heart.gcode";
     //string path = "Assets/Scripts/Resources/detailedHeart.gcode";
-    //string path = "Assets/Scripts/Resources/sample.txt";
+    string path = "Assets/Scripts/Resources/sample.txt";
     //string path = "Assets/Scripts/Resources/isolated.gcode";
     //string path = "Assets/Scripts/Resources/Cube_Test.gcode";
-    string path = "Assets/Scripts/Resources/reducedCubeTest.gcode";
+    //string path = "Assets/Scripts/Resources/reducedCubeTest.gcode";
 
     private Vector3 targetPosition;
     private float arriveThreshold = 0.01f;
@@ -286,13 +286,24 @@ public class ParseGCode : MonoBehaviour
             }
             else if (commandAxis == "E")
             {
-                printing = true;
+                float value = parseCommand(parts[i]);
+                if (value <= 0)
+                {
+                    Debug.Log("Not Printing");
+                    printing = false;
+                }
+                else
+                {
+                    Debug.Log("Printing");
+                    printing = true;
+                }
             }
             else
             {
                 Debug.Log($"Non-axis command: {commandAxis}");
             }
         }
+        // FRIDAY: ******************* TBD NEED TO HANDLE G1 CASE WITH NO XYZ COMMANDS
         instance.syncIterate++;
         return;
     }
@@ -339,9 +350,15 @@ public class ParseGCode : MonoBehaviour
             }
             else if (commandAxis == "E")
             {
-                if (parseCommand(parts[i]) == 0)
+                if (parseCommand(parts[i]) <= 0)
                 {
+                    Debug.Log("Not Printing");
                     printing = false;
+                }
+                else
+                {
+                    Debug.Log("Printing");
+                    printing = true;
                 }
             }
             else
@@ -407,7 +424,7 @@ public class ParseGCode : MonoBehaviour
         // convert for Unity 2cm per unit
         float valueUnity = value / 20f;
         float targetZ = isAbsolutePositioning ? instance.origin.position.z + valueUnity : instance.bed.position.z + valueUnity;
-        Vector3 response = new Vector3(instance.bed.position.x, instance.bed.position.y, -targetZ);
+        Vector3 response = new Vector3(instance.bed.position.x, instance.bed.position.y, targetZ);
         Debug.Log($"HandleZ: {response}");
         return response;
     }
