@@ -64,7 +64,7 @@ public class ParseGCode : MonoBehaviour
     public static ParseGCode instance; // needed for static access
     public int syncIterate = 0; // track iteration of synced commands
     public bool isSynced = false; // track if the current command is synced
-    public bool printingStatus = false;
+    public bool printingStatus = true;
 
     public struct MovementCommand
     {
