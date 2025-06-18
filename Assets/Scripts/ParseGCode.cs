@@ -6,8 +6,8 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using System.Collections.Specialized;
 
-// 1 unity unit = 2 cm
-// home: (0,0,0) =>
+// 1 unity unit = 2 cm in real life
+// home coordinates in Unity world space
 // beam: Vector3(1.81139994,7.24909925,2.01740003)
 // head: Vector3(-4.69999981,7.3499999,2.91009998)
 // bed: Vector3(0,3.70597005,9.07999992)
@@ -41,20 +41,20 @@ public class ParseGCode : MonoBehaviour
         { "Y", HandleZ }  // gcode uses Y for Unity Z axis
     };
 
-    // path to .gcode file
+    // path to .gcode files for testing
     /** FUTURE DEVELOPMENT: allow user to select file **/
     //string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
     //string path = "Assets/Scripts/Resources/smallShark.gcode";
     //string path = "Assets/Scripts/Resources/heart.gcode";
     //string path = "Assets/Scripts/Resources/detailedHeart.gcode";
-    string path = "Assets/Scripts/Resources/sample.txt";
     //string path = "Assets/Scripts/Resources/isolated.gcode";
     //string path = "Assets/Scripts/Resources/Cube_Test.gcode";
-    //string path = "Assets/Scripts/Resources/reducedCubeTest.gcode";
+    //string path = "Assets/Scripts/Resources/sample.txt";
+    string path = "Assets/Scripts/Resources/reducedCubeTest.gcode";
 
     private Vector3 targetPosition;
     private float arriveThreshold = 0.01f;
-    private List<MovementCommand> activeCommands = new List<MovementCommand>();
+    public List<MovementCommand> activeCommands = new List<MovementCommand>();
 
     protected StreamReader reader = null;
     protected string text; // allow first line to be read below
@@ -62,27 +62,31 @@ public class ParseGCode : MonoBehaviour
     private float moveSpeed = 2f;
 
     public static ParseGCode instance; // needed for static access
-    public int syncIterate = 0;
+    public int syncIterate = 0; // track iteration of synced commands
+    public bool isSynced = false; // track if the current command is synced
+    public bool printingStatus = false;
+
     public struct MovementCommand
     {
         public int rbIndex;
         public Vector3 vector;
         public float speed;
         public int syncId;
+        public bool printing;
 
-        public MovementCommand(int rbIndex, Vector3 vector, float speed, int syncId)
+        public MovementCommand(int rbIndex, Vector3 vector, float speed, int syncId, bool printing)
         {
             this.rbIndex = rbIndex;
             this.vector = vector;
             this.speed = speed;
             this.syncId = syncId;
+            this.printing = printing; 
         }
     }
 
     Queue<MovementCommand> commandQueue = new Queue<MovementCommand>();
 
     private static bool isAbsolutePositioning = true;
-    public static bool printing = false;
     public GameObject filamentPrefab; 
     private Vector3 filamentShift = new Vector3(-4.6926f, 7.3616f, 2.9300f);
 
@@ -253,7 +257,7 @@ public class ParseGCode : MonoBehaviour
         {
             Debug.Log(part);
         }
-        for (var i = 1; i < parts.Length; i++)
+        for (int i = parts.Length - 1; i >= 1; i--)
         {
             string commandAxis = getCommandLetter(parts[i]);
             if (commandAxis == "X")
@@ -261,21 +265,24 @@ public class ParseGCode : MonoBehaviour
                 //Debug.Log("X axis: Unity");
                 instance.targetPosition = HandleX(parseCommand(parts[i]));
                 //Debug.Log($"Move: {instance.targetPosition}, Speed: {instance.moveSpeed * Time.fixedDeltaTime}");
-                instance.commandQueue.Enqueue(new MovementCommand(0, instance.targetPosition, instance.moveSpeed, instance.syncIterate));
+                instance.commandQueue.Enqueue(new MovementCommand(0, instance.targetPosition, instance.moveSpeed, instance.syncIterate, instance.printingStatus));
+                instance.isSynced = true; // mark as synced command
             }
             else if (commandAxis == "Y")
             {
                 //Debug.Log("Z axis: Unity");
                 instance.targetPosition = HandleZ(parseCommand(parts[i]));
                 //Debug.Log($"Move: {instance.targetPosition}, Speed: {instance.moveSpeed * Time.fixedDeltaTime}");
-                instance.commandQueue.Enqueue(new MovementCommand(1, instance.targetPosition, instance.moveSpeed, instance.syncIterate));
+                instance.commandQueue.Enqueue(new MovementCommand(1, instance.targetPosition, instance.moveSpeed, instance.syncIterate, instance.printingStatus));
+                instance.isSynced = true; // mark as synced command
             }
             else if (commandAxis == "Z")
             {
                 //Debug.Log("Y axis: Unity");
                 instance.targetPosition = HandleY(parseCommand(parts[i]));
                 //Debug.Log($"Move: {instance.targetPosition}, Speed: {instance.moveSpeed * Time.fixedDeltaTime}");
-                instance.commandQueue.Enqueue(new MovementCommand(2, instance.targetPosition, instance.moveSpeed, instance.syncIterate));
+                instance.commandQueue.Enqueue(new MovementCommand(2, instance.targetPosition, instance.moveSpeed, instance.syncIterate, instance.printingStatus));
+                instance.isSynced = true; // mark as synced command
             }
             // need to calculate first to be stored to the action (i flipped the order of command parts addressed)
             else if (commandAxis == "F")
@@ -290,12 +297,12 @@ public class ParseGCode : MonoBehaviour
                 if (value <= 0)
                 {
                     Debug.Log("Not Printing");
-                    printing = false;
+                    instance.printingStatus = false;
                 }
                 else
                 {
                     Debug.Log("Printing");
-                    printing = true;
+                    instance.printingStatus = true;
                 }
             }
             else
@@ -303,8 +310,13 @@ public class ParseGCode : MonoBehaviour
                 Debug.Log($"Non-axis command: {commandAxis}");
             }
         }
-        // FRIDAY: ******************* TBD NEED TO HANDLE G1 CASE WITH NO XYZ COMMANDS
-        instance.syncIterate++;
+
+        if (instance.isSynced)   // mark this command group as synced
+        {
+            instance.syncIterate++;
+        }
+        instance.isSynced = false; // reset for next command group
+        
         return;
     }
 
@@ -332,33 +344,40 @@ public class ParseGCode : MonoBehaviour
     static void HandleG92(string[] parts)
     {
         Debug.Log("Handling G92 command: SET POSITION");
-        // G92 X0 Y0 Z0 E0
-        for (var i = 1; i < parts.Length; i++)
+        bool currentState = isAbsolutePositioning;
+        isAbsolutePositioning = true; // force absolute positioning for G92
+        for (int i = parts.Length - 1; i >= 1; i--)
         {
             string commandAxis = getCommandLetter(parts[i]);
             if (commandAxis == "X")
             {
                 instance.head.position = HandleX(parseCommand(parts[i]));
+                instance.commandQueue.Enqueue(new MovementCommand(0, instance.head.position, instance.moveSpeed, instance.syncIterate, instance.printingStatus));
+                instance.isSynced = true; // mark as synced command
             }
             else if (commandAxis == "Y")
             {
                 instance.bed.position = HandleZ(parseCommand(parts[i]));
+                instance.commandQueue.Enqueue(new MovementCommand(1, instance.head.position, instance.moveSpeed, instance.syncIterate, instance.printingStatus));
+                instance.isSynced = true;
             }
             else if (commandAxis == "Z")
             {
                 instance.beam.position = HandleY(parseCommand(parts[i]));
+                instance.commandQueue.Enqueue(new MovementCommand(2, instance.head.position, instance.moveSpeed, instance.syncIterate, instance.printingStatus));
+                instance.isSynced = true;
             }
             else if (commandAxis == "E")
             {
                 if (parseCommand(parts[i]) <= 0)
                 {
                     Debug.Log("Not Printing");
-                    printing = false;
+                    instance.printingStatus = false;
                 }
                 else
                 {
                     Debug.Log("Printing");
-                    printing = true;
+                    instance.printingStatus = true;
                 }
             }
             else
@@ -366,20 +385,27 @@ public class ParseGCode : MonoBehaviour
                 Debug.Log($"Unknown axis in G92: {commandAxis}");
             }
         }
+        isAbsolutePositioning = currentState; // restore previous state
+        if (instance.isSynced)   // mark this command group as synced
+        {
+            instance.syncIterate++;
+        }
+        instance.isSynced = false; // reset for next command group
+
     }
 
     static void HandleG4(string[] parts)
     {
         Debug.Log("Handling G4 command");
-        // TBD
+        // dont need to actively handle G4, since raspberry pi sends next command after the delay
     }
 
     static void HandleG28(string[] parts)
     {
         Debug.Log("Handling G28 command: HOMING");
-        instance.commandQueue.Enqueue(new MovementCommand(0, new Vector3(-4.69999981f, 7.3499999f, 2.91009998f), instance.moveSpeed, instance.syncIterate));
-        instance.commandQueue.Enqueue(new MovementCommand(1, new Vector3(0f, 3.70597005f, 9.07999992f), instance.moveSpeed, instance.syncIterate));
-        instance.commandQueue.Enqueue(new MovementCommand(2, new Vector3(1.81139994f, 7.24909925f, 2.01740003f), instance.moveSpeed, instance.syncIterate));
+        instance.commandQueue.Enqueue(new MovementCommand(0, new Vector3(-4.69999981f, 7.3499999f, 2.91009998f), instance.moveSpeed, instance.syncIterate, instance.printingStatus));
+        instance.commandQueue.Enqueue(new MovementCommand(1, new Vector3(0f, 3.70597005f, 9.07999992f), instance.moveSpeed, instance.syncIterate, instance.printingStatus));
+        instance.commandQueue.Enqueue(new MovementCommand(2, new Vector3(1.81139994f, 7.24909925f, 2.01740003f), instance.moveSpeed, instance.syncIterate, instance.printingStatus));
         instance.syncIterate++;
     }
  
@@ -457,4 +483,19 @@ public class ParseGCode : MonoBehaviour
         return group;
     }
 
+    public static bool IsCurrentlyPrintingHead()
+    {
+        if (instance == null) return false;
+
+        foreach (var cmd in instance.activeCommands)
+        {
+            if (cmd.printing)
+            {
+                Debug.Log("PRINTING SHOULD DISPLAY");
+                return true;
+            }
+        }
+        Debug.Log("PRINTING SHOULD NOT DISPLAY");
+        return false;
+    }
 }

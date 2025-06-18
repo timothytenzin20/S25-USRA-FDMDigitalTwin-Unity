@@ -1,4 +1,5 @@
 using UnityEngine;
+using System.Collections.Generic;
 
 public class DrawLines : MonoBehaviour
 {
@@ -16,14 +17,18 @@ public class DrawLines : MonoBehaviour
 
     void Update()
     {
-        //if (Vector3.Distance(parentObject.transform.position, lastPositionBed) > distanceThreshold || Vector3.Distance(transform.position, lastPositionHead) > distanceThreshold)
-        //{
-        if (ParseGCode.printing)
+        if (ParseGCode.IsCurrentlyPrintingHead())
         {
-            GameObject clonedObject = Instantiate(trailPrefab, transform.position, Quaternion.identity);
-            clonedObject.transform.parent = parentObject.transform;
-            lastPositionBed = parentObject.transform.position;
-            lastPositionHead = transform.position;
+            float distBed = Vector3.Distance(parentObject.transform.position, lastPositionBed);
+            float distHead = Vector3.Distance(transform.position, lastPositionHead);
+
+            if (distBed > distanceThreshold || distHead > distanceThreshold)
+            {
+                GameObject clonedObject = Instantiate(trailPrefab, transform.position, Quaternion.identity);
+                clonedObject.transform.parent = parentObject.transform;
+                lastPositionBed = parentObject.transform.position;
+                lastPositionHead = transform.position;
+            }
         }
     }
 }

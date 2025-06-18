@@ -313,6 +313,8 @@ MonoBehaviour:
   - {fileID: 1190094516}
   - {fileID: 739952824}
   syncIterate: 0
+  isSynced: 0
+  printingStatus: 0
   filamentPrefab: {fileID: 7084693242036441449, guid: 1b0f22f2625d48a449134ca46459498c, type: 3}
 --- !u!1 &739952817
 GameObject:
