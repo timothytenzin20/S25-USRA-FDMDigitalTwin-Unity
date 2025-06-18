@@ -10,7 +10,7 @@ using System.Collections.Specialized;
 // home coordinates in Unity world space
 // beam: Vector3(1.81139994,7.24909925,2.01740003)
 // head: Vector3(-4.69999981,7.3499999,2.91009998)
-// bed: Vector3(0,3.70597005,9.07999992)
+// bed: Vector3(0,3.71000004,7.13000011)
 public class ParseGCode : MonoBehaviour
 {
     public Rigidbody[] rb;
@@ -87,8 +87,6 @@ public class ParseGCode : MonoBehaviour
     Queue<MovementCommand> commandQueue = new Queue<MovementCommand>();
 
     private static bool isAbsolutePositioning = true;
-    public GameObject filamentPrefab; 
-    private Vector3 filamentShift = new Vector3(-4.6926f, 7.3616f, 2.9300f);
 
     void Awake()
     {
@@ -222,7 +220,7 @@ public class ParseGCode : MonoBehaviour
                 {
                     // Special handling for the beam to follow the head
                     Vector3 beamPosition = rb[2].position;
-                    Vector3 target2 = new Vector3(beamPosition.x, rb[0].position.y, beamPosition.z);
+                    Vector3 target2 = new Vector3(beamPosition.x, rb[0].position.y, beamPosition.z); 
                     rb[2].MovePosition(Vector3.MoveTowards(rb[2].position, target2, speed * Time.fixedDeltaTime));
                 }
 
@@ -428,7 +426,8 @@ public class ParseGCode : MonoBehaviour
     {
         // convert for Unity 2cm per unit
         float valueUnity = value / 20f;
-        float targetX = isAbsolutePositioning ? instance.origin.position.x + valueUnity : instance.head.position.x + valueUnity;
+        float headToOriginOffsetX = -6.5114f;
+        float targetX = isAbsolutePositioning ? instance.origin.position.x + valueUnity + 0.5f: instance.head.position.x + valueUnity;
         Vector3 response = new Vector3(targetX, instance.head.position.y, instance.head.position.z);
         Debug.Log($"HandleX: {response}");
         return response;
