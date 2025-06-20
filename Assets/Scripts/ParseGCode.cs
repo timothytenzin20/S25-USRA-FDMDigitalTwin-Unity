@@ -81,7 +81,7 @@ public class ParseGCode : MonoBehaviour
             this.vector = vector;
             this.speed = speed;
             this.syncId = syncId;
-            this.printing = printing; 
+            this.printing = printing;
         }
     }
 
@@ -138,7 +138,8 @@ public class ParseGCode : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        if (reader == null) {
+        if (reader == null)
+        {
             return;
         }
 
@@ -221,7 +222,7 @@ public class ParseGCode : MonoBehaviour
                 {
                     // Special handling for the beam to follow the head
                     Vector3 beamPosition = rb[2].position;
-                    Vector3 target2 = new Vector3(beamPosition.x, rb[0].position.y, beamPosition.z); 
+                    Vector3 target2 = new Vector3(beamPosition.x, rb[0].position.y, beamPosition.z);
                     rb[2].MovePosition(Vector3.MoveTowards(rb[2].position, target2, speed * Time.fixedDeltaTime));
                 }
 
@@ -231,7 +232,7 @@ public class ParseGCode : MonoBehaviour
 
                 if (Vector3.Distance(newPos, target) < arriveThreshold)
                 {
-                    body.MovePosition(target); 
+                    body.MovePosition(target);
                     completed.Add(cmd);
                 }
             }
@@ -315,7 +316,7 @@ public class ParseGCode : MonoBehaviour
             instance.syncIterate++;
         }
         instance.isSynced = false; // reset for next command group
-        
+
         return;
     }
 
@@ -407,7 +408,7 @@ public class ParseGCode : MonoBehaviour
         instance.commandQueue.Enqueue(new MovementCommand(2, new Vector3(1.81139994f, 7.24909925f, 2.01740003f), instance.moveSpeed, instance.syncIterate, instance.printingStatus));
         instance.syncIterate++;
     }
- 
+
     static float parseCommand(string command)
     {
         //Debug.Log($"Parsing command: {command}");
@@ -418,7 +419,7 @@ public class ParseGCode : MonoBehaviour
     static string getCommandLetter(string command)
     {
         //Debug.Log($"Parsing command: {command}");
-        string character = command.Substring(0,1);
+        string character = command.Substring(0, 1);
         //Debug.Log(character);
         return character;
     }
@@ -428,7 +429,7 @@ public class ParseGCode : MonoBehaviour
         // convert for Unity 2cm per unit
         float valueUnity = value / 20f;
         Debug.Log($"{instance.origin.position.x}, {instance.origin.position.y}, {instance.origin.position.z}");
-        float targetX = isAbsolutePositioning ? instance.origin.position.x - valueUnity + 0.5f: instance.head.position.x - valueUnity;
+        float targetX = isAbsolutePositioning ? instance.origin.position.x - valueUnity + 0.5f : instance.head.position.x - valueUnity;
         Vector3 response = new Vector3(targetX, instance.head.position.y, instance.head.position.z);
         Debug.Log($"HandleX: {response}");
         return response;
@@ -449,7 +450,7 @@ public class ParseGCode : MonoBehaviour
     {
         // convert for Unity 2cm per unit
         float valueUnity = value / 20f;
-        float targetZ = isAbsolutePositioning ? instance.origin.position.z - valueUnity + 6.03101101f: instance.bed.position.z - valueUnity;
+        float targetZ = isAbsolutePositioning ? instance.origin.position.z - valueUnity + 6.03101101f : instance.bed.position.z - valueUnity;
         Vector3 response = new Vector3(instance.bed.position.x, instance.bed.position.y, targetZ);
         Debug.Log($"HandleZ: {response}");
         return response;
