@@ -429,7 +429,7 @@ public class ParseGCode : MonoBehaviour
         // convert for Unity 2cm per unit
         float valueUnity = value / 20f;
         Debug.Log($"{instance.origin.position.x}, {instance.origin.position.y}, {instance.origin.position.z}");
-        float targetX = isAbsolutePositioning ? instance.origin.position.x - valueUnity + 0.5f : instance.head.position.x - valueUnity;
+        float targetX = isAbsolutePositioning ? instance.origin.position.x - valueUnity: instance.head.position.x - valueUnity;
         Vector3 response = new Vector3(targetX, instance.head.position.y, instance.head.position.z);
         Debug.Log($"HandleX: {response}");
         return response;
