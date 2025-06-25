@@ -472,8 +472,6 @@ MonoBehaviour:
   - {fileID: 1190094516}
   - {fileID: 739952824}
   syncIterate: 0
-  isSynced: 0
-  printingStatus: 0
 --- !u!1 &739952817
 GameObject:
   m_ObjectHideFlags: 0
@@ -1466,6 +1464,7 @@ GameObject:
   m_Component:
   - component: {fileID: 543450652620729497}
   - component: {fileID: 179982225}
+  - component: {fileID: 919132148095120932}
   m_Layer: 0
   m_Name: Creality 3D printer In blender v3 0origion
   m_TagString: Untagged
@@ -1473,6 +1472,18 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
+--- !u!114 &919132148095120932
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 919132148095120931}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: bf5b1a286fad91e4cbbed05822387643, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!23 &1277615508229357617
 MeshRenderer:
   m_ObjectHideFlags: 0
@@ -1637,7 +1648,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: fbca3329350b19d4b974a8afcdc7a4df, type: 2}
+  - {fileID: 2100000, guid: 355f3fafc3a52b2418ac1ef417f32ffc, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0

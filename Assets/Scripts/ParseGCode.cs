@@ -64,8 +64,8 @@ public class ParseGCode : MonoBehaviour
 
     public static ParseGCode instance; // needed for static access
     public int syncIterate = 0; // track iteration of synced commands
-    public bool isSynced = false; // track if the current command is synced
-    public bool printingStatus = true;
+    private bool isSynced = false; // track if the current command is synced
+    private bool printingStatus;
 
     public struct MovementCommand
     {
@@ -248,6 +248,7 @@ public class ParseGCode : MonoBehaviour
     static void HandleG1(string[] parts)
     {
         Debug.Log("Handling G1 command");
+        instance.printingStatus = false; 
         if (parts[0] == "G0")
         {
             Debug.Log("Handling G0 command");
