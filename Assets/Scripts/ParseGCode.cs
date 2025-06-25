@@ -48,9 +48,9 @@ public class ParseGCode : MonoBehaviour
     //string path = "Assets/Scripts/Resources/heart.gcode";
     //string path = "Assets/Scripts/Resources/detailedHeart.gcode";
     //string path = "Assets/Scripts/Resources/isolated.gcode";
-    //string path = "Assets/Scripts/Resources/Cube_Test.gcode";
+    string path = "Assets/Scripts/Resources/Cube_Test.gcode";
     //string path = "Assets/Scripts/Resources/sample.txt";
-    string path = "Assets/Scripts/Resources/circle.gcode";
+    //string path = "Assets/Scripts/Resources/circle.gcode";
     //string path = "Assets/Scripts/Resources/reducedCubeTest.gcode";
 
     private Vector3 targetPosition;
@@ -450,7 +450,7 @@ public class ParseGCode : MonoBehaviour
     {
         // convert for Unity 2cm per unit
         float valueUnity = value / 20f;
-        float targetZ = isAbsolutePositioning ? instance.origin.position.z - valueUnity + 6.03101101f : instance.bed.position.z - valueUnity;
+        float targetZ = isAbsolutePositioning ? instance.origin.position.z + valueUnity - 6.03101101f : instance.bed.position.z + valueUnity;
         Vector3 response = new Vector3(instance.bed.position.x, instance.bed.position.y, targetZ);
         Debug.Log($"HandleZ: {response}");
         return response;
