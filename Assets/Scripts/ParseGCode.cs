@@ -49,9 +49,9 @@ public class ParseGCode : MonoBehaviour
     //string path = "Assets/Scripts/Resources/heart.gcode";
     //string path = "Assets/Scripts/Resources/detailedHeart.gcode";
     //string path = "Assets/Scripts/Resources/isolated.gcode";
-    //string path = "Assets/Scripts/Resources/Cube_Test.gcode";
-    //string path = "Assets/Scripts/Resources/sample.txt";
-    string path = "Assets/Scripts/Resources/circle.gcode";
+    //string path = "Assets/Scripts/Resoxurces/Cube_Test.gcode";
+    string path = "Assets/Scripts/Resources/sample.txt";
+    //string path = "Assets/Scripts/Resources/circle.gcode";
     //string path = "Assets/Scripts/Resources/reducedCubeTest.gcode";
        
     protected StreamReader reader = null;
@@ -166,9 +166,13 @@ public class ParseGCode : MonoBehaviour
 
             parseEntireCommand(text);
         }
-        else 
+        else
         {
-            parseEntireCommand(SerialDebugger.line);
+            if (!string.IsNullOrEmpty(SerialDebugger.line))
+            {
+                parseEntireCommand(SerialDebugger.line);
+                SerialDebugger.line = string.Empty; // clear the line after processing
+            }
         }
     }
 
@@ -400,6 +404,12 @@ public class ParseGCode : MonoBehaviour
 
     static void parseEntireCommand(string text)
     {
+        if (instance == null)
+        {
+            Debug.LogError("ParseGCode.instance is null!");
+            return;
+        }
+
         string trimmed = text.Trim();
         if (trimmed != null)
         {
