@@ -7,7 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Collections.Specialized;
 
 // 1 unity unit = 2 cm in real life
-// home coordinates in Unity world space
+// estimated home coordinates in Unity world space
 // beam: Vector3(1.81139994,7.24909925,2.01740003)
 // head: Vector3(-4.69999981,7.3499999,2.91009998)
 // bed: Vector3(0,3.71000004,7.13000011)
@@ -41,6 +41,7 @@ public class ParseGCode : MonoBehaviour
         { "Y", HandleZ }  // gcode uses Y for Unity Z axis
     };
 
+    
     // path to .gcode files for testing
     /** FUTURE DEVELOPMENT: allow user to select file **/
     //string path = "Assets/Scripts/Resources/sampleSharkFile.gcode";
@@ -48,17 +49,17 @@ public class ParseGCode : MonoBehaviour
     //string path = "Assets/Scripts/Resources/heart.gcode";
     //string path = "Assets/Scripts/Resources/detailedHeart.gcode";
     //string path = "Assets/Scripts/Resources/isolated.gcode";
-    string path = "Assets/Scripts/Resources/Cube_Test.gcode";
+    //string path = "Assets/Scripts/Resources/Cube_Test.gcode";
     //string path = "Assets/Scripts/Resources/sample.txt";
-    //string path = "Assets/Scripts/Resources/circle.gcode";
+    string path = "Assets/Scripts/Resources/circle.gcode";
     //string path = "Assets/Scripts/Resources/reducedCubeTest.gcode";
-
+       
+    protected StreamReader reader = null;
+    protected string text; // allow first line to be read below
+    
     private Vector3 targetPosition;
     private float arriveThreshold = 0.01f;
     public List<MovementCommand> activeCommands = new List<MovementCommand>();
-
-    protected StreamReader reader = null;
-    protected string text; // allow first line to be read below
 
     private float moveSpeed = 2f;
 
@@ -122,65 +123,52 @@ public class ParseGCode : MonoBehaviour
         origin.useGravity = false;
         origin.isKinematic = false;
 
-        if (File.Exists(path))
+        if (!SerialDebugger.portExists)
         {
-            Debug.Log("Reading file");
-            //Debug.Log("File exists");
-            reader = new StreamReader(path);
+            if (File.Exists(path))
+            {
+                Debug.Log("Reading file");
+                //Debug.Log("File exists");
+                reader = new StreamReader(path);
+            }
+            else
+            {
+                Debug.Log("G-code file not found.");
+                return;
+            }
         }
         else
         {
-            Debug.Log("G-code file not found.");
-            return;
+            Debug.Log("Serial connection established, reading from serial port.");
+            reader = null; // no file reading when connected to serial port
         }
     }
 
     // Update is called once per frame
     void Update()
     {
-        if (reader == null)
+        if (!SerialDebugger.portExists)
         {
-            return;
-        }
-
-        text = reader.ReadLine();
-
-        if (text == null)
-        {
-            Debug.Log("End of file reached.");
-            reader.Close();
-            reader = null;
-            return;
-        }
-
-        string trimmed = text.Trim();
-        if (trimmed != null)
-        {
-            //Debug.Log("Trimming line");
-            if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith(";") || trimmed.StartsWith("("))
+            if (reader == null)
             {
-                Debug.Log("Skipping empty line or comment");
+                return;
             }
-            else
+
+            text = reader.ReadLine();
+
+            if (text == null)
             {
-                int index = trimmed.IndexOf(";");
-                if (index >= 0)
-                {
-                    trimmed = trimmed.Substring(0, index);
-                }
-                string[] parts = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-                string command = parts[0].ToUpper();
-                //Debug.Log(command);
-                //Debug.Log("Handling command");
-                if (gcodeHandlers.TryGetValue(command, out var handler))
-                {
-                    handler(parts);
-                }
-                else
-                {
-                    Debug.Log($"Unknown command: {command}");
-                }
+                Debug.Log("End of file reached.");
+                reader.Close();
+                reader = null;
+                return;
             }
+
+            parseEntireCommand(text);
+        }
+        else 
+        {
+            parseEntireCommand(SerialDebugger.line);
         }
     }
 
@@ -409,6 +397,40 @@ public class ParseGCode : MonoBehaviour
         instance.commandQueue.Enqueue(new MovementCommand(2, new Vector3(1.81139994f, 7.24909925f, 2.01740003f), instance.moveSpeed, instance.syncIterate, instance.printingStatus));
         instance.syncIterate++;
     }
+
+    static void parseEntireCommand(string text)
+    {
+        string trimmed = text.Trim();
+        if (trimmed != null)
+        {
+            //Debug.Log("Trimming line");
+            if (string.IsNullOrWhiteSpace(trimmed) || trimmed.StartsWith(";") || trimmed.StartsWith("("))
+            {
+                Debug.Log("Skipping empty line or comment");
+            }
+            else
+            {    
+                int index = trimmed.IndexOf(";");
+                if (index >= 0)
+                {
+                    trimmed = trimmed.Substring(0, index);
+                }
+                string[] parts = trimmed.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+                string command = parts[0].ToUpper();
+                //Debug.Log(command);
+                //Debug.Log("Handling command");
+                if (gcodeHandlers.TryGetValue(command, out var handler))
+                {
+                    handler(parts);
+                }
+                else
+                {
+                    Debug.Log($"Unknown command: {command}");
+                }
+            }
+        }
+    }
+
 
     static float parseCommand(string command)
     {

@@ -12,7 +12,8 @@ void setup() {
 
 void loop() {
   while (PI_Serial.available()) {
-    Serial.println(PI_Serial.read()); // forward command to Unity
+    String gcode = PI_Serial.readStringUntil('\n'); // Read full G-code line
+    Serial.println(gcode);
   }
 
   // static unsigned long lastSent = 0;

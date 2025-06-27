@@ -1,22 +1,34 @@
 using UnityEngine;
 using System.IO.Ports;
+using System.Linq;
 
 public class SerialDebugger : MonoBehaviour
 {
     SerialPort sp = new SerialPort("COM3", 115200); // arduino serial port
-
+    public static string line;
+    public static bool portExists = SerialPort.GetPortNames().Any(x => x == "COM3");
     // connect to the arduino serial port
+
     void Start()
     {
-        try
+        if (!portExists)
         {
-            sp.Open();
-            sp.ReadTimeout = 500;
-            Debug.Log("Serial port opened");
+            Debug.LogError("Serial port COM3 does not exist. Please check your connection.");
+            return;
         }
-        catch (System.Exception e)
+        else
         {
-            Debug.LogError("Failed to connect: " + e.Message);
+            Debug.Log("Serial port COM3 exists. Attempting to connect...");
+            try
+                {
+                    sp.Open();
+                    sp.ReadTimeout = 500;
+                    Debug.Log("Serial port opened");
+                }
+                catch (System.Exception e)
+                {
+                    Debug.LogError("Failed to connect: " + e.Message);
+                }
         }
     }
 
@@ -28,10 +40,13 @@ public class SerialDebugger : MonoBehaviour
         {
             try
             {
-                string line = sp.ReadLine();
+                line = sp.ReadLine();
                 Debug.Log("Received Command: " + line);
             }
-            catch (System.Exception e) { }
+            catch (System.Exception e)
+            {
+                Debug.LogError("Failed to recieve command: " + e.Message);
+            }
         }
     }
 
