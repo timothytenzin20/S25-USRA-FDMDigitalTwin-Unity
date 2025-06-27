@@ -7,7 +7,7 @@ SoftwareSerial PI_Serial(rxPin, txPin); // rx from pi, tx unused
 
 void setup() {
   Serial.begin(115200);       // USB serial to unity
-  PI_Serial.begin(115200);    // receiving from Pi
+  PI_Serial.begin(38400);    // receiving from Pi
 }
 
 void loop() {

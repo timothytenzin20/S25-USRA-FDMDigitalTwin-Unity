@@ -40,15 +40,23 @@ public class SerialDebugger : MonoBehaviour
         {
             try
             {
-                line = sp.ReadLine();
-                Debug.Log("Received Command: " + line);
+                if (sp.BytesToRead > 0)
+                {
+                    line = sp.ReadLine();
+                    Debug.Log("Received Command: " + line);
+                }
+            }
+            catch (System.TimeoutException)
+            {
+                // no data received, continue
             }
             catch (System.Exception e)
             {
-                Debug.LogError("Failed to recieve command: " + e.Message);
+                Debug.LogError("Failed to receive command: " + e.Message);
             }
         }
     }
+
 
     void OnApplicationQuit()
     {
