@@ -3,8 +3,8 @@ using System;
 using System.IO;
 using System.Collections;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
-using System.Collections.Specialized;
+// using System.Runtime.CompilerServices;
+// using System.Collections.Specialized;
 
 // 1 unity unit = 2 cm in real life
 // estimated home coordinates in Unity world space
@@ -88,7 +88,7 @@ public class ParseGCode : MonoBehaviour
 
     Queue<MovementCommand> commandQueue = new Queue<MovementCommand>();
 
-    private static bool isAbsolutePositioning = true;
+    private static bool isAbsolutePositioning = true; // Default expected value in Ender 3
 
     void Awake()
     {
@@ -176,7 +176,6 @@ public class ParseGCode : MonoBehaviour
         }
     }
 
-    // need to run multiple commands at once
     void FixedUpdate()
     {
         if (activeCommands.Count == 0 && commandQueue.Count > 0)
@@ -237,10 +236,11 @@ public class ParseGCode : MonoBehaviour
         }
     }
 
+    // G-code G1 linear movement command
     static void HandleG1(string[] parts)
     {
         Debug.Log("Handling G1 command");
-        instance.printingStatus = false; 
+        instance.printingStatus = false;
         if (parts[0] == "G0")
         {
             Debug.Log("Handling G0 command");
@@ -313,27 +313,31 @@ public class ParseGCode : MonoBehaviour
         return;
     }
 
-    static void HandleG2(string[] parts)
-    {
-        Debug.Log("Handling G2 command");
-        foreach (var part in parts)
-        {
-            Debug.Log(part);
-        }
-    }
+    // G-code G2 arc command
+    // static void HandleG2(string[] parts)
+    // {
+    //     Debug.Log("Handling G2 command");
+    //     foreach (var part in parts)
+    //     {
+    //         Debug.Log(part);
+    //     }
+    // }
 
+    // Set printer behaviour to absolute positioning
     static void HandleG90(string[] parts)
     {
         Debug.Log("Handling G90 command: ABSOLUTE");
         isAbsolutePositioning = true;
     }
 
+    // Set printer behaviour to relative positioning
     static void HandleG91(string[] parts)
     {
         Debug.Log("Handling G91 command: RELATIVE");
         isAbsolutePositioning = false;
     }
 
+    // Set position of printer
     static void HandleG92(string[] parts)
     {
         Debug.Log("Handling G92 command: SET POSITION");
@@ -387,12 +391,13 @@ public class ParseGCode : MonoBehaviour
 
     }
 
-    static void HandleG4(string[] parts)
-    {
-        Debug.Log("Handling G4 command");
-        // dont need to actively handle G4, since raspberry pi sends next command after the delay
-    }
+    // static void HandleG4(string[] parts)
+    // {
+    //     Debug.Log("Handling G4 command");
+    //     // dont need to actively handle G4, since raspberry pi sends next command after the delay
+    // }
 
+    // Auto-home printer
     static void HandleG28(string[] parts)
     {
         Debug.Log("Handling G28 command: HOMING");
@@ -402,6 +407,7 @@ public class ParseGCode : MonoBehaviour
         instance.syncIterate++;
     }
 
+    // Handle inpute G-code command
     static void parseEntireCommand(string text)
     {
         if (instance == null)
@@ -419,7 +425,7 @@ public class ParseGCode : MonoBehaviour
                 Debug.Log("Skipping empty line or comment");
             }
             else
-            {    
+            {
                 int index = trimmed.IndexOf(";");
                 if (index >= 0)
                 {
@@ -441,7 +447,7 @@ public class ParseGCode : MonoBehaviour
         }
     }
 
-
+    // Retrieve parameter value
     static float parseCommand(string command)
     {
         //Debug.Log($"Parsing command: {command}");
@@ -449,6 +455,7 @@ public class ParseGCode : MonoBehaviour
         return number;
     }
 
+    // Retrieve parameter letter
     static string getCommandLetter(string command)
     {
         //Debug.Log($"Parsing command: {command}");
@@ -457,17 +464,19 @@ public class ParseGCode : MonoBehaviour
         return character;
     }
 
+    // Move exturder/head in Unity according to G-code parameter
     static Vector3 HandleX(float value)
     {
         // convert for Unity 2cm per unit
         float valueUnity = value / 20f;
         Debug.Log($"{instance.origin.position.x}, {instance.origin.position.y}, {instance.origin.position.z}");
-        float targetX = isAbsolutePositioning ? instance.origin.position.x - valueUnity: instance.head.position.x - valueUnity;
+        float targetX = isAbsolutePositioning ? instance.origin.position.x - valueUnity : instance.head.position.x - valueUnity;
         Vector3 response = new Vector3(targetX, instance.head.position.y, instance.head.position.z);
         Debug.Log($"HandleX: {response}");
         return response;
     }
 
+    // Move exturder support beam in Unity according to G-code parameter
     static Vector3 HandleY(float value) // value is .gcode Z-axis (vertical)
     {
         // convert for Unity 2cm per unit
@@ -479,16 +488,18 @@ public class ParseGCode : MonoBehaviour
         return response;
     }
 
+    // Move printer bed in Unity according to G-code parameter
     static Vector3 HandleZ(float value) // value is .gcode Y-axis
     {
         // convert for Unity 2cm per unit
         float valueUnity = value / 20f;
-        float targetZ = isAbsolutePositioning ? instance.origin.position.z + valueUnity - 6.03101101f : instance.bed.position.z + valueUnity;
+        float targetZ = isAbsolutePositioning ? instance.origin.position.z + valueUnity - 6.03101101f : instance.bed.position.z + valueUnity; // Shifted value seems to resolve unexpected errors in printer simulation
         Vector3 response = new Vector3(instance.bed.position.x, instance.bed.position.y, targetZ);
         Debug.Log($"HandleZ: {response}");
         return response;
     }
 
+    // Update movement speed of printer according to G-code parameter
     static void SetFeedRate(float value)
     {
         // mm/min to Unity units (2cm) per second
@@ -501,6 +512,7 @@ public class ParseGCode : MonoBehaviour
         return;
     }
 
+    // Retrieve the next command in queue and ensure corresponding axes commands are run together and not separetly (based on syncId)
     static List<MovementCommand> DequeueNextCommandGroup(Queue<MovementCommand> queue)
     {
         if (queue.Count == 0) return new List<MovementCommand>();
@@ -517,6 +529,7 @@ public class ParseGCode : MonoBehaviour
         return group;
     }
 
+    // Update printing status to ensure extruding behaviour in Unity matches printer expected behaviour
     public static bool IsCurrentlyPrintingHead()
     {
         if (instance == null) return false;
