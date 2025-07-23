@@ -17,12 +17,12 @@ public class DrawLines : MonoBehaviour
 
     void Update()
     {
-        if (ParseGCode.IsCurrentlyPrintingHead())
-        {
+        //if (ParseGCode.IsCurrentlyPrintingHead())
+        //{
             GameObject clonedObject = Instantiate(trailPrefab, transform.position, Quaternion.identity);
             clonedObject.transform.parent = parentObject.transform;
             lastPositionBed = parentObject.transform.position;
             lastPositionHead = transform.position;
-        }
+        //}
     }
 }

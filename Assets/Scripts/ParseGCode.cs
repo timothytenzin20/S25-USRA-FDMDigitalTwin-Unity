@@ -62,11 +62,13 @@ public class ParseGCode : MonoBehaviour
     public List<MovementCommand> activeCommands = new List<MovementCommand>();
 
     private float moveSpeed = 2f;
+    private float moveSpeedHomingXZ = 2.5f;
+    private float moveSpeedHomingY = 0.5f; // slower speed for Z-axis homing
 
     public static ParseGCode instance; // needed for static access
     public int syncIterate = 0; // track iteration of synced commands
     private bool isSynced = false; // track if the current command is synced
-    private bool printingStatus;
+    private bool printingStatus; // track if the printer is currently printing
 
     public struct MovementCommand
     {
@@ -246,10 +248,10 @@ public class ParseGCode : MonoBehaviour
             Debug.Log("Handling G0 command");
             SetFeedRate(300);
         }
-        foreach (var part in parts)
-        {
-            Debug.Log(part);
-        }
+        //foreach (var part in parts)
+        //{
+        //    Debug.Log(part);
+        //}
         for (int i = parts.Length - 1; i >= 1; i--)
         {
             string commandAxis = getCommandLetter(parts[i]);
@@ -304,12 +306,8 @@ public class ParseGCode : MonoBehaviour
             }
         }
 
-        if (instance.isSynced)   // mark this command group as synced
-        {
-            instance.syncIterate++;
-        }
+        instance.syncIterate++;
         instance.isSynced = false; // reset for next command group
-
         return;
     }
 
@@ -379,10 +377,7 @@ public class ParseGCode : MonoBehaviour
             }
         }
         isAbsolutePositioning = currentState; // restore previous state
-        if (instance.isSynced)   // mark this command group as synced
-        {
-            instance.syncIterate++;
-        }
+        instance.syncIterate++;
         instance.isSynced = false; // reset for next command group
 
     }
@@ -390,15 +385,20 @@ public class ParseGCode : MonoBehaviour
     static void HandleG4(string[] parts)
     {
         Debug.Log("Handling G4 command");
-        // dont need to actively handle G4, since raspberry pi sends next command after the delay
+        // dont need to actively handle G4, since raspberry pi sends next command after the delay... maybe .... might need to handle it in the future
     }
 
     static void HandleG28(string[] parts)
     {
         Debug.Log("Handling G28 command: HOMING");
-        instance.commandQueue.Enqueue(new MovementCommand(0, new Vector3(6.66300011f, 7.3499999f, 2.91009998f), instance.moveSpeed, instance.syncIterate, instance.printingStatus));
-        instance.commandQueue.Enqueue(new MovementCommand(1, new Vector3(0f, 3.71000004f, -1.63499999f), instance.moveSpeed, instance.syncIterate, instance.printingStatus));
-        instance.commandQueue.Enqueue(new MovementCommand(2, new Vector3(1.81139994f, 7.24909925f, 2.01740003f), instance.moveSpeed, instance.syncIterate, instance.printingStatus));
+        instance.commandQueue.Enqueue(new MovementCommand(0, new Vector3(6.66300011f, 7.3499999f, 2.91009998f), instance.moveSpeedHomingXZ, instance.syncIterate, instance.printingStatus));
+        instance.syncIterate++;
+        instance.commandQueue.Enqueue(new MovementCommand(1, new Vector3(0f, 3.71000004f, -1.63499999f), instance.moveSpeedHomingXZ, instance.syncIterate, instance.printingStatus));
+        instance.syncIterate++;
+        instance.commandQueue.Enqueue(new MovementCommand(2, new Vector3(1.81139994f, 7.24909925f, 2.01740003f), instance.moveSpeedHomingY, instance.syncIterate, instance.printingStatus));
+        instance.syncIterate++;
+        instance.commandQueue.Enqueue(new MovementCommand(0, new Vector3(-1.15699995f, 7.3499999f, 2.91009998f), instance.moveSpeedHomingXZ, instance.syncIterate, instance.printingStatus));
+        instance.commandQueue.Enqueue(new MovementCommand(1, new Vector3(0f, 3.71000004f, 6.00400162f), instance.moveSpeedHomingXZ, instance.syncIterate, instance.printingStatus));
         instance.syncIterate++;
     }
 
@@ -429,6 +429,7 @@ public class ParseGCode : MonoBehaviour
                 string command = parts[0].ToUpper();
                 //Debug.Log(command);
                 //Debug.Log("Handling command");
+                instance.syncIterate ++; // increment sync ID for each command processed
                 if (gcodeHandlers.TryGetValue(command, out var handler))
                 {
                     handler(parts);
