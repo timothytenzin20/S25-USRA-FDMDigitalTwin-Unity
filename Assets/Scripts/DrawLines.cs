@@ -15,7 +15,7 @@ public class DrawLines : MonoBehaviour
         lastPositionHead = transform.position;
     }
 
-    void Update()
+    void FixedUpdate()
     {
         if (ParseGCode.IsCurrentlyPrintingHead())
         {
@@ -23,6 +23,7 @@ public class DrawLines : MonoBehaviour
             clonedObject.transform.parent = parentObject.transform;
             lastPositionBed = parentObject.transform.position;
             lastPositionHead = transform.position;
+            
         }
     }
 }

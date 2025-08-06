@@ -25,11 +25,11 @@ public class ParseGCode : MonoBehaviour
     {
         { "G0", HandleG1 },
         { "G1", HandleG1 },
-        { "G2", HandleG2 },
+        //{ "G2", HandleG2 }, // UNUSED COMMAND
         { "G90", HandleG90 },
         { "G91", HandleG91 },
         { "G92", HandleG92 },
-        { "G4", HandleG4 },
+        //{ "G4", HandleG4 }, // UNUSED COMMAND
         { "G28", HandleG28 }
         /** FUTURE DEVELOPMENT: MORE COMMANDS **/
     };
@@ -50,10 +50,11 @@ public class ParseGCode : MonoBehaviour
     //string path = "Assets/Scripts/Resources/detailedHeart.gcode";
     //string path = "Assets/Scripts/Resources/isolated.gcode";
     //string path = "Assets/Scripts/Resoxurces/Cube_Test.gcode";
-    string path = "Assets/Scripts/Resources/sample.txt";
+    //string path = "Assets/Scripts/Resources/sample.txt";
     //string path = "Assets/Scripts/Resources/circle.gcode";
-    //string path = "Assets/Scripts/Resources/reducedCubeTest.gcode";
-       
+    string path = "Assets/Scripts/Resources/reducedCubeTest.gcode";
+    //string path = "Assets/Scripts/Resources/lineTest.gcode";
+
     protected StreamReader reader = null;
     protected string text; // allow first line to be read below
     
