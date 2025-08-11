@@ -52,8 +52,8 @@ public class ParseGCode : MonoBehaviour
     //string path = "Assets/Scripts/Resoxurces/Cube_Test.gcode";
     //string path = "Assets/Scripts/Resources/sample.txt";
     //string path = "Assets/Scripts/Resources/circle.gcode";
-    string path = "Assets/Scripts/Resources/reducedCubeTest.gcode";
-    //string path = "Assets/Scripts/Resources/lineTest.gcode";
+    //string path = "Assets/Scripts/Resources/reducedCubeTest.gcode";
+    string path = "Assets/Scripts/Resources/lineTest.gcode";
 
     protected StreamReader reader = null;
     protected string text; // allow first line to be read below
